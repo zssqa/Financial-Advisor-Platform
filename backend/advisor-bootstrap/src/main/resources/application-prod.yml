@@ -1,0 +1,58 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: financial-advisor
+
+  ai:
+    dashscope:
+      api-key: ${AI_DASHSCOPE_API_KEY}
+      chat:
+        model: qwen3.6-plus
+        options:
+          temperature: 0.7
+
+    vectorstore:
+      pgvector:
+        host: ${DB_HOST:postgres}
+        port: 5432
+        database: financial_rag
+        username: postgres
+        password: ${DB_PASSWORD}
+        initialize-schema: true
+
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 100MB
+
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:postgres}:5432/financial_rag
+    username: postgres
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+
+tavily:
+  api-key: ${TAVILY_API_KEY}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus,metrics,info
+  metrics:
+    tags:
+      application: ${spring.application.name}
+  endpoint:
+    prometheus:
+      enabled: true
+
+advisor:
+  context-compression:
+    max-messages: 20
+    keep-after-trim: 6
+  confirmation:
+    required-amount: 100000
+  checkpoint:
+    saver: postgres

@@ -1,0 +1,35 @@
+spring:
+  ai:
+    dashscope:
+      api-key: ${AI_DASHSCOPE_API_KEY:test-key}
+      chat:
+        model: qwen3.6-plus
+        options:
+          temperature: 0.7
+
+    vectorstore:
+      pgvector:
+        host: localhost
+        port: 5432
+        database: financial_rag
+        username: postgres
+        password: root
+        initialize-schema: true
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/financial_rag
+    username: postgres
+    password: root
+    driver-class-name: org.postgresql.Driver
+
+tavily:
+  api-key: ${TAVILY_API_KEY:test-key}
+
+advisor:
+  context-compression:
+    max-messages: 10
+    keep-after-trim: 4
+  confirmation:
+    required-amount: 1000
+  checkpoint:
+    saver: memory

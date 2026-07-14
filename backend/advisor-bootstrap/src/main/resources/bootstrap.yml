@@ -1,0 +1,12 @@
+spring:
+  application:
+    name: financial-advisor
+  cloud:
+    nacos:
+      config:
+        server-addr: ${NACOS_SERVER:localhost:8848}
+        namespace: ${NACOS_NAMESPACE:financial-advisor}
+        data-id: advisor-config.yaml
+        group: DEFAULT_GROUP
+        file-extension: yaml
+        refresh-enabled: true
