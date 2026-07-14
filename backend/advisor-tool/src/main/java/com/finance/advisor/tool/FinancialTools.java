@@ -2,9 +2,9 @@ package com.finance.advisor.tool;
 
 import com.finance.advisor.rag.DocumentIngestionService;
 import com.finance.advisor.rag.DocumentMetadataService;
+import com.finance.advisor.rag.HybridSearchService;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
-import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.ai.document.Document;
 import org.springframework.beans.factory.annotation.Value;
@@ -33,13 +33,16 @@ public class FinancialTools {
     private final VectorStore vectorStore;
     private final DocumentIngestionService documentIngestionService;
     private final DocumentMetadataService documentMetadataService;
+    private final HybridSearchService hybridSearchService;
 
     public FinancialTools(VectorStore vectorStore,
                           DocumentIngestionService documentIngestionService,
-                          DocumentMetadataService documentMetadataService) {
+                          DocumentMetadataService documentMetadataService,
+                          HybridSearchService hybridSearchService) {
         this.vectorStore = vectorStore;
         this.documentIngestionService = documentIngestionService;
         this.documentMetadataService = documentMetadataService;
+        this.hybridSearchService = hybridSearchService;
     }
 
     @Tool(name = "tavily_web_search",
@@ -219,8 +222,8 @@ public class FinancialTools {
     public String searchResearchReports(
             @ToolParam(description = "搜索关键词或问题") String query) {
 
-        List<Document> docs = vectorStore.similaritySearch(
-                SearchRequest.builder().query(query).topK(5).similarityThreshold(0.6).build());
+        // 使用混合检索 (RRF 融合: 向量语义 + 关键词) 替代纯向量检索
+        List<Document> docs = hybridSearchService.hybridSearch(query, 5);
 
         if (docs.isEmpty()) {
             return "知识库中未找到相关研报内容";

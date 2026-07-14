@@ -506,6 +506,48 @@ CREATE INDEX spring_ai_vector_index ON public.vector_store USING hnsw (embedding
 
 
 --
+-- 对话历史持久化表 (chat_memory)
+-- 用于 Spring AI ChatMemory 的对话消息持久化备份。
+-- 注意：Spring AI 1.1.x 的 JdbcChatMemoryRepository 实际使用 SPRING_AI_CHAT_MEMORY 表，
+-- 该表由 spring.ai.chat.memory.repository.jdbc.initialize-schema=always 自动创建，
+-- 无需手动执行。以下 chat_memory DDL 作为 schema 备份/参考。
+--
+CREATE TABLE IF NOT EXISTS chat_memory (
+    conversation_id VARCHAR(36) NOT NULL,
+    content TEXT NOT NULL,
+    type VARCHAR(10) NOT NULL,
+    "timestamp" TIMESTAMP NOT NULL
+);
+
+--
+-- Agent 检查点持久化表 (GraphThread / GraphCheckpoint)
+-- 由 PostgresSaver (CreateOption.CREATE_IF_NOT_EXISTS) 在启动时自动创建，无需手动执行。
+-- 以下 DDL 作为 schema 备份/参考。
+--
+CREATE TABLE IF NOT EXISTS "GraphThread" (
+    thread_id UUID PRIMARY KEY,
+    thread_name VARCHAR(255),
+    is_released BOOLEAN DEFAULT FALSE NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "GraphCheckpoint" (
+    checkpoint_id UUID PRIMARY KEY,
+    parent_checkpoint_id UUID,
+    thread_id UUID NOT NULL,
+    node_id VARCHAR(255),
+    next_node_id VARCHAR(255),
+    state_data JSONB NOT NULL,
+    state_content_type VARCHAR(100) NOT NULL,
+    saved_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_thread FOREIGN KEY(thread_id) REFERENCES "GraphThread"(thread_id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_lg4jcheckpoint_thread_id ON "GraphCheckpoint"(thread_id);
+CREATE INDEX IF NOT EXISTS idx_lg4jcheckpoint_thread_id_saved_at_desc ON "GraphCheckpoint"(thread_id, saved_at DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_lg4jthread_thread_name_unreleased ON "GraphThread"(thread_name) WHERE is_released = FALSE;
+
+
+--
 -- PostgreSQL database dump complete
 --
 

@@ -20,6 +20,11 @@ export function getSummary() {
     return http.get('/portfolio/summary').then(res => res.data.data)
 }
 
+// 获取最近 N 天的市值历史（盈亏趋势）
+export function getPortfolioHistory(days = 30) {
+    return http.get('/portfolio/history', { params: { days } }).then(res => res.data.data)
+}
+
 export function importAssets(file) {
     const formData = new FormData()
     formData.append('file', file)

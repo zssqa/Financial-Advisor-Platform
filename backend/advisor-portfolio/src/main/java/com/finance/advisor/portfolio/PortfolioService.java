@@ -68,7 +68,24 @@ public class PortfolioService {
         jdbcTemplate.execute("ALTER TABLE assets ADD COLUMN IF NOT EXISTS current_price NUMERIC(20,4)");
         jdbcTemplate.execute("ALTER TABLE assets ADD COLUMN IF NOT EXISTS market_value NUMERIC(20,4)");
         jdbcTemplate.execute("ALTER TABLE assets ADD COLUMN IF NOT EXISTS price_updated_at BIGINT");
+        // 资产历史净值快照表：记录每日行情快照，供前端折线图使用
+        jdbcTemplate.execute("""
+                CREATE TABLE IF NOT EXISTS asset_price_history (
+                    id BIGSERIAL PRIMARY KEY,
+                    asset_id BIGINT NOT NULL,
+                    user_id BIGINT NOT NULL,
+                    symbol VARCHAR(32),
+                    snapshot_date DATE NOT NULL,
+                    price NUMERIC(20,4),
+                    market_value NUMERIC(20,4),
+                    created_at BIGINT NOT NULL,
+                    UNIQUE(asset_id, snapshot_date)
+                )
+                """);
+        jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_asset_price_history_user ON asset_price_history(user_id)");
+        jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_asset_price_history_date ON asset_price_history(snapshot_date)");
         log.info("assets 表已就绪");
+        log.info("asset_price_history 表已就绪");
     }
 
     public List<Asset> list(Long userId) {
@@ -142,6 +159,8 @@ public class PortfolioService {
                 if (price != null) {
                     BigDecimal marketValue = amount.multiply(price);
                     assetRepository.updateMarketData(asset.getId(), price, marketValue, System.currentTimeMillis());
+                    // 写入当日净值快照（同日重复刷新则更新）
+                    savePriceSnapshot(asset, price, marketValue);
                     refreshed++;
                     log.info("[行情刷新] 成功: id={}, symbol={}, price={}, marketValue={}",
                             asset.getId(), asset.getSymbol(), price, marketValue);
@@ -150,6 +169,8 @@ public class PortfolioService {
                     BigDecimal costPrice = asset.getCostPrice() != null ? asset.getCostPrice() : BigDecimal.ONE;
                     BigDecimal marketValue = amount.multiply(costPrice);
                     assetRepository.updateMarketData(asset.getId(), null, marketValue, System.currentTimeMillis());
+                    // 降级场景同样写入快照（price 为空，仅记录市值），保证折线图连续
+                    savePriceSnapshot(asset, null, marketValue);
                     failed++;
                     log.warn("[行情刷新] 降级: id={}, symbol={}, 无法获取行情，使用成本价计算市值", asset.getId(), asset.getSymbol());
                 }
@@ -159,6 +180,48 @@ public class PortfolioService {
             }
         }
         log.info("[行情刷新] 完成: 成功={}, 失败/降级={}, 总计={}", refreshed, failed, assets.size());
+    }
+
+    /**
+     * 查询指定资产最近 N 天的历史净值快照，供单资产折线图使用。
+     * 返回元素按 snapshot_date 升序排列，包含 date/price/marketValue 三个字段。
+     */
+    public List<Map<String, Object>> getPriceHistory(Long assetId, int days) {
+        java.sql.Date startDate = java.sql.Date.valueOf(java.time.LocalDate.now().minusDays(days));
+        String sql = """
+                SELECT snapshot_date, price, market_value
+                FROM asset_price_history
+                WHERE asset_id = ? AND snapshot_date >= ?
+                ORDER BY snapshot_date ASC
+                """;
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("date", rs.getDate("snapshot_date").toString());
+            row.put("price", rs.getBigDecimal("price"));
+            row.put("marketValue", rs.getBigDecimal("market_value"));
+            return row;
+        }, assetId, startDate);
+    }
+
+    /**
+     * 查询用户所有资产的每日汇总市值（按 snapshot_date 分组求和），供 Dashboard 折线图使用。
+     * 返回元素按 snapshot_date 升序排列，包含 date/totalMarketValue 两个字段。
+     */
+    public List<Map<String, Object>> getPortfolioHistory(Long userId, int days) {
+        java.sql.Date startDate = java.sql.Date.valueOf(java.time.LocalDate.now().minusDays(days));
+        String sql = """
+                SELECT snapshot_date, SUM(market_value) AS total_market_value
+                FROM asset_price_history
+                WHERE user_id = ? AND snapshot_date >= ?
+                GROUP BY snapshot_date
+                ORDER BY snapshot_date ASC
+                """;
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("date", rs.getDate("snapshot_date").toString());
+            row.put("totalMarketValue", rs.getBigDecimal("total_market_value"));
+            return row;
+        }, userId, startDate);
     }
 
     public PortfolioSummary summary(Long userId) {
@@ -267,6 +330,33 @@ public class PortfolioService {
         } catch (Exception e) {
             log.warn("查询基金净值失败, symbol={}, 降级使用成本价: {}", symbol, e.getMessage());
             return null;
+        }
+    }
+
+    /**
+     * 写入资产当日净值快照（同日重复刷新则更新，基于 UNIQUE(asset_id, snapshot_date) 做 UPSERT）。
+     */
+    private void savePriceSnapshot(Asset asset, BigDecimal price, BigDecimal marketValue) {
+        try {
+            String sql = """
+                    INSERT INTO asset_price_history (asset_id, user_id, symbol, snapshot_date, price, market_value, created_at)
+                    VALUES (?, ?, ?, CURRENT_DATE, ?, ?, ?)
+                    ON CONFLICT (asset_id, snapshot_date) DO UPDATE SET
+                        price = EXCLUDED.price,
+                        market_value = EXCLUDED.market_value,
+                        created_at = EXCLUDED.created_at
+                    """;
+            jdbcTemplate.update(sql,
+                    asset.getId(),
+                    asset.getUserId(),
+                    asset.getSymbol(),
+                    price,
+                    marketValue,
+                    System.currentTimeMillis());
+        } catch (Exception e) {
+            // 快照写入失败不应影响主流程
+            log.warn("[行情快照] 写入失败: assetId={}, symbol={}, error={}",
+                    asset.getId(), asset.getSymbol(), e.getMessage());
         }
     }
 

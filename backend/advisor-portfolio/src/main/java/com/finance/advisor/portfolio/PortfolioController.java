@@ -14,7 +14,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -25,9 +27,11 @@ import java.util.Set;
 public class PortfolioController {
 
     private final PortfolioService portfolioService;
+    private final PriceAlertService priceAlertService;
 
-    public PortfolioController(PortfolioService portfolioService) {
+    public PortfolioController(PortfolioService portfolioService, PriceAlertService priceAlertService) {
         this.portfolioService = portfolioService;
+        this.priceAlertService = priceAlertService;
     }
 
     @GetMapping("/list")
@@ -61,8 +65,26 @@ public class PortfolioController {
     }
 
     @GetMapping("/summary")
-    public ApiResponse<PortfolioSummary> summary() {
-        return ApiResponse.success(portfolioService.summary(SecurityUtil.currentUserId()));
+    public ApiResponse<Map<String, Object>> summary() {
+        Long userId = SecurityUtil.currentUserId();
+        PortfolioSummary summary = portfolioService.summary(userId);
+        // 在 summary 返回中追加 unreadAlerts 字段（未读已触发预警数）
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("totalCost", summary.getTotalCost());
+        data.put("totalMarketValue", summary.getTotalMarketValue());
+        data.put("profitLoss", summary.getProfitLoss());
+        data.put("breakdown", summary.getBreakdown());
+        data.put("unreadAlerts", priceAlertService.countUnreadAlerts(userId));
+        return ApiResponse.success(data);
+    }
+
+    /**
+     * 查询当前用户资产组合最近 N 天的每日汇总市值，供 Dashboard 折线图使用。
+     * 默认 30 天。
+     */
+    @GetMapping("/history")
+    public ApiResponse<List<Map<String, Object>>> history(@RequestParam(defaultValue = "30") int days) {
+        return ApiResponse.success(portfolioService.getPortfolioHistory(SecurityUtil.currentUserId(), days));
     }
 
     @PostMapping("/import")

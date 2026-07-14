@@ -1,43 +1,33 @@
 package com.finance.advisor.agent.config;
 
 import org.springframework.ai.chat.memory.ChatMemory;
+import org.springframework.ai.chat.memory.ChatMemoryRepository;
+import org.springframework.ai.chat.memory.MessageWindowChatMemory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
 /**
- * 对话记忆配置（基于内存）
+ * 对话记忆配置（基于 JDBC 持久化到 PostgreSQL）
+ *
+ * 底层存储使用 Spring AI 的 JdbcChatMemoryRepository（由
+ * spring-ai-starter-model-chat-memory-repository-jdbc 自动配置注入），
+ * 上层采用 MessageWindowChatMemory 窗口策略保留最近 N 条消息。
+ * 重启后端后，历史对话消息可从 SPRING_AI_CHAT_MEMORY 表恢复。
  */
 @Configuration
 public class ChatMemoryConfig {
 
+    /**
+     * 基于 JDBC 仓库的对话记忆 Bean
+     *
+     * @param chatMemoryRepository 由 Spring AI 自动配置创建的 JdbcChatMemoryRepository
+     * @return 消息窗口聊天记忆（保留最近 20 条消息，与上下文压缩阈值一致）
+     */
     @Bean
-    public ChatMemory chatMemory() {
-        return new InMemoryChatMemory();
-    }
-
-    static class InMemoryChatMemory implements ChatMemory {
-        private final Map<String, List<org.springframework.ai.chat.messages.Message>> store = new ConcurrentHashMap<>();
-
-        @Override
-        public void add(String conversationId, List<org.springframework.ai.chat.messages.Message> messages) {
-            store.computeIfAbsent(conversationId, k -> new ArrayList<>()).addAll(messages);
-        }
-
-        @Override
-        public List<org.springframework.ai.chat.messages.Message> get(String conversationId) {
-            List<org.springframework.ai.chat.messages.Message> all = store.get(conversationId);
-            if (all == null) return List.of();
-            return all;
-        }
-
-        @Override
-        public void clear(String conversationId) {
-            store.remove(conversationId);
-        }
+    public ChatMemory chatMemory(ChatMemoryRepository chatMemoryRepository) {
+        return MessageWindowChatMemory.builder()
+                .chatMemoryRepository(chatMemoryRepository)
+                .maxMessages(20)
+                .build();
     }
 }

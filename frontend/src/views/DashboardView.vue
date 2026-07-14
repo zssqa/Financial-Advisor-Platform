@@ -15,6 +15,20 @@
                 <h2 class="title">
                     <n-icon size="22"><GridOutline /></n-icon>
                     个人看板
+                    <!-- 价格预警红点入口：未读数 > 0 时显示红色徽章，点击跳转资产管理页 -->
+                    <n-badge
+                        v-if="unreadAlerts > 0"
+                        :value="unreadAlerts"
+                        :max="99"
+                        class="alert-badge"
+                    >
+                        <n-button quaternary size="small" @click="goPortfolio">
+                            <template #icon>
+                                <n-icon color="#ff4d4f"><NotificationsOutline /></n-icon>
+                            </template>
+                            预警
+                        </n-button>
+                    </n-badge>
                 </h2>
 
                 <!-- 净资产概览 -->
@@ -40,6 +54,19 @@
                         <div class="stat-value">{{ goalCount }}</div>
                         <div class="stat-label">理财目标数</div>
                     </div>
+                </div>
+
+                <!-- 盈亏趋势折线图：近 30 天总市值变化 -->
+                <div class="card trend-card">
+                    <div class="card-header">
+                        <span>近 30 天市值趋势</span>
+                    </div>
+                    <n-spin :show="loadingHistory">
+                        <div v-if="hasHistory" class="trend-wrap">
+                            <Line :data="historyChartData" :options="historyChartOptions" />
+                        </div>
+                        <n-empty v-else description="暂无历史数据" size="small" />
+                    </n-spin>
                 </div>
 
                 <div class="grid">
@@ -123,6 +150,49 @@
                         </n-empty>
                     </div>
                 </div>
+
+                <!-- AI 资产配置建议 -->
+                <n-card class="optimize-card" size="small">
+                    <template #header>
+                        <span class="optimize-title">AI 资产配置建议</span>
+                    </template>
+                    <template #header-extra>
+                        <n-tag size="small" type="info" round>智能优化</n-tag>
+                    </template>
+                    <n-spin :show="loadingOptimize">
+                        <div v-if="optimize" class="optimize-content">
+                            <div class="optimize-weights">
+                                <div
+                                    v-for="item in weightsAsPercent"
+                                    :key="item.type"
+                                    class="weight-row"
+                                >
+                                    <div class="weight-label">{{ TYPE_LABEL_MAP[item.type] || item.type }}</div>
+                                    <n-progress
+                                        type="line"
+                                        :percentage="item.percent"
+                                        :show-indicator="true"
+                                    />
+                                </div>
+                            </div>
+                            <div class="optimize-metrics">
+                                <div class="metric">
+                                    <div class="metric-value">{{ formatPercent(optimize.expectedReturn) }}</div>
+                                    <div class="metric-label">预期收益</div>
+                                </div>
+                                <div class="metric">
+                                    <div class="metric-value">{{ formatPercent(optimize.volatility) }}</div>
+                                    <div class="metric-label">波动率</div>
+                                </div>
+                                <div class="metric">
+                                    <div class="metric-value">{{ formatNumber(optimize.sharpeRatio) }}</div>
+                                    <div class="metric-label">夏普比率</div>
+                                </div>
+                            </div>
+                        </div>
+                        <n-empty v-else description="暂无优化建议" size="small" />
+                    </n-spin>
+                </n-card>
             </div>
         </div>
     </AppLayout>
@@ -132,20 +202,22 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import {
-    NIcon, NButton, NProgress, NEmpty, NSpin
+    NIcon, NButton, NProgress, NEmpty, NSpin, NBadge, NTag, NCard
 } from 'naive-ui'
-import { GridOutline, ChatbubbleEllipsesOutline } from '@vicons/ionicons5'
-import { Pie } from 'vue-chartjs'
+import { GridOutline, ChatbubbleEllipsesOutline, NotificationsOutline } from '@vicons/ionicons5'
+import { Pie, Line } from 'vue-chartjs'
 import {
-    Chart as ChartJS, ArcElement, Tooltip, Legend
+    Chart as ChartJS, ArcElement, Tooltip, Legend,
+    CategoryScale, LinearScale, PointElement, LineElement, Filler
 } from 'chart.js'
 import AppLayout from '../components/AppLayout.vue'
 import SessionSidebar from '../components/SessionSidebar.vue'
 import { sessionsStore } from '../stores/sessions.js'
-import { getSummary as getPortfolioSummary } from '../api/portfolio.js'
+import { getSummary as getPortfolioSummary, getPortfolioHistory } from '../api/portfolio.js'
 import { getSummary as getGoalSummary } from '../api/goal.js'
+import { getOptimize } from '../api/analysis.js'
 
-ChartJS.register(ArcElement, Tooltip, Legend)
+ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement, Filler)
 
 const { state, selectSession } = sessionsStore
 const router = useRouter()
@@ -160,6 +232,15 @@ const goalSummary = ref({ goals: [] })
 
 const loadingPortfolio = ref(true)
 const loadingGoal = ref(true)
+const loadingHistory = ref(true)
+const loadingOptimize = ref(true)
+
+// 盈亏趋势历史数据
+const history = ref([])
+// AI 资产配置优化建议
+const optimize = ref(null)
+// 未读价格预警数（来自 portfolio summary）
+const unreadAlerts = ref(0)
 
 const TYPE_LABEL_MAP = {
     stock: '股票',
@@ -255,9 +336,114 @@ const recentSessions = computed(() =>
         .slice(0, 3)
 )
 
+// 是否有历史趋势数据
+const hasHistory = computed(() => Array.isArray(history.value) && history.value.length > 0)
+
+// 盈亏趋势折线图数据
+const historyChartData = computed(() => {
+    const points = history.value || []
+    const labels = points.map(p => formatDateLabel(p.date || p.timestamp || p.time))
+    const data = points.map(p => Number(p.totalMarketValue ?? p.marketValue ?? p.value ?? 0))
+    return {
+        labels,
+        datasets: [{
+            label: '总市值',
+            data,
+            borderColor: '#10a37f',
+            backgroundColor: 'rgba(16, 163, 127, 0.12)',
+            fill: true,
+            tension: 0.3,
+            pointRadius: 0,
+            pointHoverRadius: 4,
+            borderWidth: 2
+        }]
+    }
+})
+
+// 盈亏趋势折线图配置
+const historyChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+        legend: { display: false },
+        tooltip: {
+            callbacks: {
+                label(ctx) {
+                    return `总市值: ${formatMoney(ctx.parsed.y)}`
+                }
+            }
+        }
+    },
+    scales: {
+        x: {
+            grid: { display: false },
+            ticks: { font: { size: 11 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 8 }
+        },
+        y: {
+            ticks: { font: { size: 11 }, callback: (v) => formatMoneyShort(v) }
+        }
+    }
+}
+
+// 归一化 AI 推荐权重为 [{ type, weight }]，兼容数组/对象两种返回
+const optimizeWeights = computed(() => {
+    const w = optimize.value?.weights
+    if (!w) return []
+    let arr = []
+    if (Array.isArray(w)) {
+        arr = w.map(item => ({
+            type: item.type || item.assetType || item.name || 'other',
+            weight: Number(item.weight ?? item.ratio ?? 0)
+        }))
+    } else if (typeof w === 'object') {
+        arr = Object.entries(w).map(([type, weight]) => ({
+            type,
+            weight: Number(weight)
+        }))
+    }
+    return arr.filter(item => item.weight > 0).sort((a, b) => b.weight - a.weight)
+})
+
+// 将权重转换为百分比（兼容小数 0.4 与已为百分比的 40 两种形态）
+const weightsAsPercent = computed(() => {
+    const arr = optimizeWeights.value
+    const sum = arr.reduce((a, b) => a + b.weight, 0)
+    if (sum <= 0) return []
+    const multiplier = sum <= 1.5 ? 100 : 1
+    return arr.map(item => ({ ...item, percent: Number((item.weight * multiplier).toFixed(2)) }))
+})
+
 function formatMoney(v) {
     const n = Number(v || 0)
     return '¥' + n.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
+// 折线图日期标签：月/日
+function formatDateLabel(d) {
+    if (!d) return ''
+    const date = new Date(d)
+    if (isNaN(date.getTime())) return String(d)
+    return `${date.getMonth() + 1}/${date.getDate()}`
+}
+
+// 折线图 Y 轴简短金额（万）
+function formatMoneyShort(v) {
+    const n = Number(v || 0)
+    if (Math.abs(n) >= 10000) return (n / 10000).toFixed(1) + '万'
+    return n.toLocaleString('zh-CN')
+}
+
+// 百分比：兼容小数(0.08)与已是百分比的数值(8.0)
+function formatPercent(v) {
+    const n = Number(v || 0)
+    const pct = Math.abs(n) <= 1 ? n * 100 : n
+    return pct.toFixed(2) + '%'
+}
+
+// 普通数值（夏普比率等）
+function formatNumber(v) {
+    const n = Number(v || 0)
+    return n.toFixed(2)
 }
 
 function formatTime(ts) {
@@ -306,10 +492,39 @@ async function loadPortfolio() {
             profitLoss: Number(data?.profitLoss || 0),
             breakdown: Array.isArray(data?.breakdown) ? data.breakdown : []
         }
+        unreadAlerts.value = Number(data?.unreadAlerts || 0)
     } catch {
         portfolio.value = { totalCost: 0, totalMarketValue: 0, profitLoss: 0, breakdown: [] }
+        unreadAlerts.value = 0
     } finally {
         loadingPortfolio.value = false
+    }
+}
+
+// 加载近 30 天市值趋势
+async function loadHistory() {
+    loadingHistory.value = true
+    try {
+        const data = await getPortfolioHistory(30)
+        // 兼容数组或 { points: [...] } 两种返回
+        history.value = Array.isArray(data) ? data : (Array.isArray(data?.points) ? data.points : [])
+    } catch {
+        history.value = []
+    } finally {
+        loadingHistory.value = false
+    }
+}
+
+// 加载 AI 资产配置优化建议
+async function loadOptimize() {
+    loadingOptimize.value = true
+    try {
+        const data = await getOptimize()
+        optimize.value = data || null
+    } catch {
+        optimize.value = null
+    } finally {
+        loadingOptimize.value = false
     }
 }
 
@@ -328,7 +543,7 @@ async function loadGoal() {
 }
 
 onMounted(() => {
-    Promise.allSettled([loadPortfolio(), loadGoal()])
+    Promise.allSettled([loadPortfolio(), loadGoal(), loadHistory(), loadOptimize()])
 })
 </script>
 
@@ -357,9 +572,26 @@ onMounted(() => {
 .session-info { flex: 1; min-width: 0; }
 .session-title { font-size: 13px; color: #202123; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .session-meta { font-size: 11px; color: #a0a0b0; margin-top: 2px; }
+/* 预警红点徽章：推至标题行右侧 */
+.alert-badge { margin-left: auto; }
+/* 盈亏趋势折线图卡 */
+.trend-card { margin-bottom: 16px; }
+.trend-wrap { height: 280px; position: relative; }
+/* AI 资产配置建议卡 */
+.optimize-card { margin-top: 16px; border-radius: 8px; }
+.optimize-title { font-size: 14px; font-weight: 600; color: #202123; }
+.optimize-content { display: flex; flex-direction: column; gap: 18px; }
+.optimize-weights { display: flex; flex-direction: column; gap: 12px; }
+.weight-row { display: flex; flex-direction: column; gap: 4px; }
+.weight-label { font-size: 12px; color: #6e6f80; }
+.optimize-metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; padding-top: 4px; border-top: 1px solid #f7f7f8; }
+.metric { text-align: center; }
+.metric-value { font-size: 18px; font-weight: 700; color: #202123; }
+.metric-label { font-size: 12px; color: #6e6f80; margin-top: 4px; }
 @media (max-width: 768px) {
     .stats { grid-template-columns: repeat(2, 1fr); }
     .grid { grid-template-columns: 1fr; }
     .card.full { grid-column: auto; }
+    .optimize-metrics { grid-template-columns: repeat(3, 1fr); }
 }
 </style>

@@ -2,6 +2,20 @@ package com.finance.advisor.agent.core;
 
 import com.finance.advisor.tool.FinancialTools;
 import com.finance.advisor.tool.finance.RiskQuestionnaireTool;
+import com.finance.advisor.tool.finance.StockQuoteTool;
+import com.finance.advisor.tool.finance.FundNavTool;
+import com.finance.advisor.tool.finance.KlineChartTool;
+import com.finance.advisor.tool.finance.PortfolioOptimizerTool;
+import com.finance.advisor.tool.finance.FundScreenerTool;
+import com.finance.advisor.tool.finance.ExchangeRateTool;
+import com.finance.advisor.tool.finance.CreditCardInstallmentTool;
+import com.finance.advisor.tool.finance.InsuranceCompareTool;
+import com.finance.advisor.tool.finance.FinancialCalendarTool;
+import com.finance.advisor.tool.finance.SavingsGoalTool;
+import com.finance.advisor.tool.finance.MarketSentimentTool;
+import com.finance.advisor.tool.finance.TaxCalculatorTool;
+import com.finance.advisor.agent.hook.ContextCompressionHook;
+import com.finance.advisor.agent.hook.ConfirmationHook;
 import com.finance.advisor.portfolio.PortfolioService;
 import com.finance.advisor.portfolio.PortfolioSummary;
 import com.finance.advisor.portfolio.goal.GoalService;
@@ -46,9 +60,23 @@ public class FinancialAdvisorAgent {
             ChatModel chatModel,
             FinancialTools financialTools,
             RiskQuestionnaireTool riskQuestionnaireTool,
+            StockQuoteTool stockQuoteTool,
+            FundNavTool fundNavTool,
+            KlineChartTool klineChartTool,
+            PortfolioOptimizerTool portfolioOptimizerTool,
+            FundScreenerTool fundScreenerTool,
+            ExchangeRateTool exchangeRateTool,
+            CreditCardInstallmentTool creditCardInstallmentTool,
+            InsuranceCompareTool insuranceCompareTool,
+            FinancialCalendarTool financialCalendarTool,
+            SavingsGoalTool savingsGoalTool,
+            MarketSentimentTool marketSentimentTool,
+            TaxCalculatorTool taxCalculatorTool,
             BaseCheckpointSaver checkpointSaver,
             PortfolioService portfolioService,
-            GoalService goalService) {
+            GoalService goalService,
+            ContextCompressionHook contextCompressionHook,
+            ConfirmationHook confirmationHook) {
 
         this.portfolioService = portfolioService;
         this.goalService = goalService;
@@ -73,6 +101,18 @@ public class FinancialAdvisorAgent {
                         3. calculate_loan_interest - 计算贷款月供和利息
                         4. search_research_reports - 从内部知识库搜索金融研报和专业分析文档
                         5. risk_questionnaire - 通过问卷评估用户的风险承受能力，在用户未明确风险等级时主动调用
+                        6. query_stock_quote - 查询A股个股实时行情（最新价、涨跌幅、成交量），用户询问具体股票价格时调用
+                        7. query_fund_nav - 查询基金的最新单位净值、累计净值、日涨跌幅，用户询问基金净值时调用
+                        8. generate_kline_chart - 生成股票或基金的K线图（日K/周K/月K），用户需要可视化行情走势时调用
+                        9. portfolio_optimizer - 基于Markowitz模型计算最优投资组合配置比例，用户需要资产配置优化时调用
+                        10. fund_screener - 基金筛选器，按类型、收益率、规模、费率筛选推荐基金，用户寻找基金产品时调用
+                        11. exchange_rate - 查询实时汇率并进行货币转换，用户涉及外币兑换时调用
+                        12. credit_card_installment - 计算信用卡分期手续费和实际年化利率，用户咨询分期还款时调用
+                        13. insurance_compare - 保险产品对比分析（重疾险/医疗险/意外险/寿险/养老险），用户咨询保险配置时调用
+                        14. financial_calendar - 查询财报发布、分红派息等金融日历信息，用户关注上市公司关键日期时调用
+                        15. savings_goal - 储蓄目标规划，反向计算每月需存入金额以达成理财目标，用户做储蓄计划时调用
+                        16. market_sentiment - 分析市场情绪指数（综合估值、成交量、涨跌比），用户判断市场整体氛围时调用
+                        17. tax_calculator - 计算个人所得税和投资收益预估税费，用户关心税后实际收益时调用
 
                         风险约束：
                         - 必须根据用户的风险等级（R1~R5）调整投资建议
@@ -97,7 +137,12 @@ public class FinancialAdvisorAgent {
                         - 回答中应引用用户的真实数据（持仓金额、配置比例、目标进度等）
                         - 不得无视用户画像给出泛泛建议
                         """)
-                .methodTools(financialTools, riskQuestionnaireTool)
+                .methodTools(financialTools, riskQuestionnaireTool,
+                        stockQuoteTool, fundNavTool, klineChartTool,
+                        portfolioOptimizerTool, fundScreenerTool, exchangeRateTool,
+                        creditCardInstallmentTool, insuranceCompareTool, financialCalendarTool,
+                        savingsGoalTool, marketSentimentTool, taxCalculatorTool)
+                .hooks(List.of(contextCompressionHook, confirmationHook))
                 .saver(checkpointSaver)
                 .enableLogging(true)
                 .build();

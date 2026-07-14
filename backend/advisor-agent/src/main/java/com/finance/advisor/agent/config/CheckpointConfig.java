@@ -2,6 +2,7 @@ package com.finance.advisor.agent.config;
 
 import com.alibaba.cloud.ai.graph.checkpoint.BaseCheckpointSaver;
 import com.alibaba.cloud.ai.graph.checkpoint.savers.MemorySaver;
+import com.alibaba.cloud.ai.graph.checkpoint.savers.postgresql.PostgresSaver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -46,8 +47,11 @@ public class CheckpointConfig {
     public BaseCheckpointSaver postgresSaver(DataSource dataSource) {
         log.info("使用 PostgreSQL Checkpoint Saver");
         try {
-            Class<?> saverClass = Class.forName("com.alibaba.cloud.ai.graph.checkpoint.savers.postgresql.PostgresSaver");
-            return (BaseCheckpointSaver) saverClass.getConstructor(DataSource.class).newInstance(dataSource);
+            // 使用 builder 创建 PostgresSaver，默认 CreateOption.CREATE_IF_NOT_EXISTS
+            // 会在初始化时自动创建 GraphThread、GraphCheckpoint 表，无需手动维护 DDL
+            return PostgresSaver.builder()
+                    .datasource(dataSource)
+                    .build();
         } catch (Exception e) {
             throw new IllegalStateException("配置为使用 PostgresSaver，但加载失败: " + e.getMessage()
                 + "。请确保 spring-ai-alibaba-graph-core 在 classpath 中。" +

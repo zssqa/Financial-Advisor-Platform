@@ -2,6 +2,7 @@ package com.finance.advisor.tool;
 
 import com.finance.advisor.rag.DocumentIngestionService;
 import com.finance.advisor.rag.DocumentMetadataService;
+import com.finance.advisor.rag.HybridSearchService;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
@@ -10,7 +11,7 @@ import org.springframework.ai.document.Document;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 /**
@@ -21,7 +22,8 @@ class FinancialToolsTest {
     private VectorStore mockVectorStore = mock(VectorStore.class);
     private DocumentIngestionService mockIngestionService = mock(DocumentIngestionService.class);
     private DocumentMetadataService mockMetadataService = mock(DocumentMetadataService.class);
-    private FinancialTools tools = new FinancialTools(mockVectorStore, mockIngestionService, mockMetadataService);
+    private HybridSearchService mockHybridSearchService = mock(HybridSearchService.class);
+    private FinancialTools tools = new FinancialTools(mockVectorStore, mockIngestionService, mockMetadataService, mockHybridSearchService);
 
     @Test
     void testCalculateCompoundInterest() {
@@ -41,7 +43,7 @@ class FinancialToolsTest {
 
     @Test
     void testSearchResearchReportsEmpty() {
-        when(mockVectorStore.similaritySearch(any(SearchRequest.class)))
+        when(mockHybridSearchService.hybridSearch(anyString(), anyInt()))
                 .thenReturn(List.of());
         String result = tools.searchResearchReports("test query");
         assertTrue(result.contains("未找到"));
@@ -51,7 +53,7 @@ class FinancialToolsTest {
     void testSearchResearchReportsWithResults() {
         Document doc = new Document("test content");
         doc.getMetadata().put("source", "test.pdf");
-        when(mockVectorStore.similaritySearch(any(SearchRequest.class)))
+        when(mockHybridSearchService.hybridSearch(anyString(), anyInt()))
                 .thenReturn(List.of(doc));
         String result = tools.searchResearchReports("test query");
         assertTrue(result.contains("test content"));

@@ -52,4 +52,4 @@ advisor:
   confirmation:
     required-amount: 100000
   checkpoint:
-    saver: memory
+    saver: postgres

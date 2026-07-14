@@ -20,6 +20,7 @@ frontend/dist/
 frontend/.temp/
 
 ### IDE ###
+.trae/
 .idea/
 *.iml
 *.iws

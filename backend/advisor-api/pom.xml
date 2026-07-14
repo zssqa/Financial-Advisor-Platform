@@ -43,5 +43,9 @@
             <groupId>com.finance.advisor</groupId>
             <artifactId>advisor-portfolio</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.finance.advisor</groupId>
+            <artifactId>advisor-tool</artifactId>
+        </dependency>
     </dependencies>
 </project>

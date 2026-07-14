@@ -3,6 +3,7 @@ package com.finance.advisor.bootstrap;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
  * 金融多智能体理财顾问平台 - 启动入口
@@ -18,6 +19,7 @@ import org.springframework.context.annotation.ComponentScan;
  * - com.finance.advisor.bootstrap (本模块)
  */
 @SpringBootApplication
+@EnableScheduling
 @ComponentScan(basePackages = {
     "com.finance.advisor.common",
     "com.finance.advisor.user",

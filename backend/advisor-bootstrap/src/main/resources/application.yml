@@ -49,6 +49,14 @@ spring:
         password: ${DB_PASSWORD:root}
         initialize-schema: false
 
+    # 对话记忆 JDBC 持久化配置（PostgreSQL）
+    # 始终初始化 schema（CREATE TABLE IF NOT EXISTS，幂等），确保 SPRING_AI_CHAT_MEMORY 表存在
+    chat:
+      memory:
+        repository:
+          jdbc:
+            initialize-schema: always
+
   servlet:
     multipart:
       max-file-size: 50MB
@@ -78,7 +86,7 @@ advisor:
   confirmation:
     required-amount: 100000
   checkpoint:
-    saver: memory      # memory | postgres | redis
+    saver: postgres    # memory | postgres | redis (生产使用 postgres 持久化对话状态)
   jwt:
     secret: ${JWT_SECRET:financial-advisor-super-secret-key-2026-please-change-in-production}
     expiration: 86400000

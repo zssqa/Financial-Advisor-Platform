@@ -104,27 +104,42 @@
 
 ## 技术栈
 
+### 后端技术栈
+
 | 层级 | 技术选型 | 版本 | 说明 |
 |---|---|---|---|
 | **后端框架** | Spring Boot | 3.5.8 | 内嵌 Tomcat，支持 WebFlux SSE |
 | **JDK** | Oracle OpenJDK (Temurin) | 17+ | 虚拟线程、Record 等特性 |
 | **AI 框架** | Spring AI + Spring AI Alibaba | 1.1.2 / 1.1.2.2 | ReactAgent、Graph、Hook 机制 |
 | **大模型** | 阿里云百炼 qwen3.6-plus (DashScope) | - | 云端推理，支持 function calling |
+| **嵌入模型** | text-embedding-v3 (DashScope) | - | 1536 维向量嵌入 |
 | **向量数据库** | PostgreSQL + pgvector | pg16 | cosine similarity 语义检索 |
-| **前端框架** | Vue 3 (Composition API) | ^3.4.0 | `<script setup>` 语法 |
-| **前端路由** | Vue Router | ^4.3.0 | History 模式 + 路由守卫 |
-| **前端组件库** | Naive UI | ^2.44.1 | 暗色主题、表单、日期选择器 |
-| **图标库** | @vicons/ionicons5 | ^0.12.0 | 侧边栏/操作图标 |
-| **构建工具** | Vite | ^5.4.0 | HMR 热更新、代理、dedupe |
-| **HTTP 客户端** | Axios | ^1.7.0 | 拦截器、JWT 注入、401 处理 |
-| **图表** | Chart.js + vue-chartjs | ^4.4.0 / ^5.3.0 | 资产分布饼图、趋势图 |
-| **认证** | JWT (jjwt) | 0.12.6 | RS256/HS256 签名，24h 过期 |
+| **认证** | JWT (jjwt) | 0.12.6 | HS256 签名，24h 过期 |
 | **搜索引擎** | Tavily API | - | 实时财经资讯，限定近 7 天 |
 | **可观测性** | Actuator + Prometheus + Grafana | - | 6 面板监控仪表盘 |
 | **Agent 持久化** | MemorySaver / PostgresSaver | - | 可配置切换 |
+| **配置中心** | Nacos (可选) | ^3.1+ | 动态配置刷新 |
+
+### 前端技术栈
+
+| 层级 | 技术选型 | 版本 | 说明 |
+|---|---|---|---|
+| **前端框架** | Vue 3 (Composition API) | 3.5.13 | `<script setup>` 语法 |
+| **前端路由** | Vue Router | 4.5.0 | History 模式 + 路由守卫 |
+| **前端组件库** | Naive UI | 2.40.3 | 暗色主题、表单、日期选择器 |
+| **图标库** | @vicons/ionicons5 | 0.12.0 | 侧边栏/操作图标 |
+| **构建工具** | Vite | 5.4.11 | HMR 热更新、代理、dedupe |
+| **HTTP 客户端** | Axios | 1.7.9 | 拦截器、JWT 注入、401 处理 |
+| **Markdown 渲染** | markdown-it + highlight.js | 14.1.0 / 11.9.0 | 代码高亮、表格、链接 |
+| **图表** | Chart.js + vue-chartjs | 4.4.1 / 5.3.0 | 资产分布饼图、趋势图 |
+
+### 基础设施
+
+| 组件 | 技术选型 | 版本 | 说明 |
+|---|---|---|---|
 | **容器化** | Docker + docker-compose | - | 5 服务编排 |
 | **反向代理** | Nginx (生产环境) | Alpine | SPA fallback + API 代理 |
-| **配置中心** | Nacos (可选) | ^3.1+ | 动态配置刷新 |
+| **数据库** | PostgreSQL | 16 | 主数据库 + pgvector 扩展 |
 
 ---
 
@@ -339,35 +354,49 @@ advisor-bootstrap (启动入口)
          ▼
 ┌─────────────────────┐
 │   ChatController     │  接收请求，提取 sessionId / userId / riskLevel
-│   (SSE 推流入口)      │
+│   (SSE 推流入口)      │  拼接附件内容到消息
 └─────────┬───────────┘
           │
           ▼
 ┌─────────────────────┐
 │ FinancialAdvisorAgent│  ReAct 循环开始
-│  (ReactAgent)        │
+│  (ReactAgent)        │  注入用户财务画像 + 风险约束
 └─────────┬───────────┘
           │
     ┌─────┴─────┐
     │  Reasoning │  大模型分析用户意图，决定调用哪个工具
+    │  (思考)    │  输出: "需要查询基金净值和搜索最新新闻"
     └──────────┘
           │
           ▼
 ┌─────────────────────┐
 │   Tool Calling       │  调用 FundNavTool 查询基金净值
-│   (tavily_web_search │  同时 TavilyWebSearch 搜索最新新闻
-│    / fund_nav_tool)  │
+│   (工具执行)          │  同时 TavilyWebSearch 搜索最新新闻
+│                      │  自动入库相关搜索结果到知识库
 └─────────┬───────────┘
           │
     ┌─────┴─────┐
     │  Tool     │  执行工具，返回结果
-    │  Result   │
-    └─────┬─────
+    │  Result   │  基金净值: 1.2345 (2026-07-14)
+    └─────┬─────│  新闻: 3 条相关结果已入库
+          │
+          ▼
+┌─────────────────────┐
+│   Hook 拦截          │  ContextCompressionHook: 检查消息数量
+│   (BEFORE_MODEL)     │  如果 > 20 条，压缩至最近 6 条
+└─────────┬───────────┘
           │
           ▼
 ┌─────────────────────┐
 │   Reasoning          │  大模型综合工具结果，生成最终回复
 │   (合成答案)          │  注入用户风险等级约束 (R1-R5)
+│                      │  引用数据来源和日期
+└─────────┬───────────┘
+          │
+          ▼
+┌─────────────────────┐
+│   Hook 拦截          │  ConfirmationHook: 检测大额操作
+│   (AFTER_MODEL)      │  如果涉及 >= 100,000 元，插入确认提示
 └─────────┬───────────┘
           │
           ▼
@@ -377,9 +406,76 @@ advisor-bootstrap (启动入口)
 └─────────────────────┘
 ```
 
-**Hook 机制** (在 ReAct 循环中拦截):
-- **ContextCompressionHook**: 消息超过 20 条时自动裁剪至 6 条，防止 token 溢出
-- **ConfirmationHook**: 涉及大额资金操作 (>= 100,000 元) 时暂停，等待用户确认
+**Hook 机制详解**:
+
+#### ContextCompressionHook (BEFORE_MODEL)
+
+在模型调用前拦截，自动压缩过长的对话历史:
+
+```java
+@HookPositions({HookPosition.BEFORE_MODEL})
+public AgentCommand beforeModel(List<Message> messages, RunnableConfig config) {
+    if (messages.size() <= maxMessages) {  // 默认 20 条
+        return new AgentCommand(messages);
+    }
+    
+    // 保留第一条 (系统提示) + 最近 keepAfterTrim 条 (默认 6 条)
+    List<Message> compressedMessages = new ArrayList<>();
+    compressedMessages.add(messages.get(0));  // 系统提示
+    int startIndex = Math.max(1, messages.size() - keepAfterTrim);
+    for (int i = startIndex; i < messages.size(); i++) {
+        compressedMessages.add(messages.get(i));
+    }
+    
+    return new AgentCommand(compressedMessages, UpdatePolicy.REPLACE);
+}
+```
+
+**配置项**:
+```yaml
+advisor:
+  context-compression:
+    max-messages: 20        # 触发压缩的阈值
+    keep-after-trim: 6      # 压缩后保留的消息数
+```
+
+#### ConfirmationHook (AFTER_MODEL)
+
+在模型响应后拦截，检测大额金融操作并插入人工确认:
+
+```java
+@HookPositions({HookPosition.AFTER_MODEL})
+public AgentCommand afterModel(List<Message> messages, RunnableConfig config) {
+    String content = assistantMessage.getText();
+    
+    if (containsConfirmationTrigger(content)) {
+        // 插入确认提示
+        String confirmationMsg = "\n\n⚠️ **需要您的确认**\n\n"
+            + "以上操作涉及大额资金，请确认是否继续？\n"
+            + "回复「确认」继续执行，回复「取消」放弃操作。";
+        
+        // 替换最后一条消息
+        return new AgentCommand(updatedMessages, UpdatePolicy.REPLACE);
+    }
+    
+    return new AgentCommand(messages);
+}
+```
+
+**触发条件**:
+- 包含 "投资" + 金额 (>= 100,000)
+- 包含 "转账" + 金额 (>= 100,000)
+- 包含 "购买" + 金额 (>= 100,000)
+- 包含 "支付" + 金额 (>= 100,000)
+- 同时包含 "确认" 和 "金额"
+- 同时包含 "万" 和 ("投资" | "购买" | "转账")
+
+**配置项**:
+```yaml
+advisor:
+  confirmation:
+    required-amount: 100000  # 大额确认阈值 (元)
+```
 
 ### 3. 金融工具 (16 个)
 

@@ -45,7 +45,7 @@
 import { computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { NButton, NIcon } from 'naive-ui'
-import { AddOutline, TrashOutline, ChatbubbleEllipsesOutline, GridOutline, SettingsOutline, CloudUploadOutline, WalletOutline, TrophyOutline } from '@vicons/ionicons5'
+import { AddOutline, TrashOutline, ChatbubbleEllipsesOutline, GridOutline, SettingsOutline, CloudUploadOutline, WalletOutline, TrophyOutline, TrendingUpOutline, BarChartOutline, BuildOutline } from '@vicons/ionicons5'
 
 const props = defineProps({
     sessions: { type: Array, default: () => [] },
@@ -62,6 +62,9 @@ const navItems = [
     { path: '/chat', label: '智能对话', icon: ChatbubbleEllipsesOutline },
     { path: '/portfolio', label: '我的资产', icon: WalletOutline },
     { path: '/goal', label: '理财目标', icon: TrophyOutline },
+    { path: '/market', label: '市场行情', icon: TrendingUpOutline },
+    { path: '/analysis', label: '投资分析', icon: BarChartOutline },
+    { path: '/toolbox', label: '工具箱', icon: BuildOutline },
     { path: '/knowledge', label: '知识库', icon: CloudUploadOutline },
     { path: '/dashboard', label: '仪表盘', icon: GridOutline },
     { path: '/settings', label: '设置', icon: SettingsOutline }
