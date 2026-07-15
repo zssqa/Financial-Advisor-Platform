@@ -35,7 +35,7 @@ export function streamChat(message, onMessage, onReasoning, onToolCall, onToolRe
         headers.Authorization = 'Bearer ' + auth.token
     }
 
-    fetch('/api/chat/stream', {
+    fetch('/api/chat/messages:stream', {
         method: 'POST',
         headers,
         body: JSON.stringify(body),
@@ -119,5 +119,5 @@ export function streamChat(message, onMessage, onReasoning, onToolCall, onToolRe
 export function callChat(message, riskLevel) {
     const body = { message }
     if (riskLevel) body.riskLevel = riskLevel
-    return http.post('/chat/call', body)
+    return http.post('/chat/messages', body).then(res => res.data.data)
 }

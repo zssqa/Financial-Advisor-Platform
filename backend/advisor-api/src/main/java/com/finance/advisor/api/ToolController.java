@@ -21,7 +21,6 @@ import java.util.regex.Pattern;
  * 工具箱 REST 接口：个税计算、基金筛选、汇率换算、信用卡分期。
  */
 @RestController
-@RequestMapping("/api/tool")
 public class ToolController {
 
     private final TaxCalculatorTool taxCalculatorTool;
@@ -45,7 +44,7 @@ public class ToolController {
      * 工具的 specialDeduction 参数含义为"专项扣除总额（含社保公积金等）"，
      * 因此将社保与专项附加扣除合并后传入，收入类型按工资薪金处理。
      */
-    @PostMapping("/tax")
+    @PostMapping("/api/tax-calculations")
     public ApiResponse<String> tax(@RequestBody TaxRequest request) {
         double deduction = nz(request.socialInsurance()) + nz(request.specialDeduction());
         String result = taxCalculatorTool.calculateTax(
@@ -57,7 +56,7 @@ public class ToolController {
      * 基金筛选：返回结构化 JSON 数组。
      * 请求体：{fundType, minReturn, maxRisk, sortBy}
      */
-    @PostMapping("/fund-screener")
+    @PostMapping("/api/funds:screen")
     public ApiResponse<List<FundInfo>> fundScreener(@RequestBody FundScreenerRequest request) {
         String fundType = request.fundType() == null ? "equity" : request.fundType();
         String result = fundScreenerTool.screenFunds(
@@ -124,7 +123,7 @@ public class ToolController {
      * 实时汇率换算。
      * 将 ExchangeRateTool 返回的格式化文本解析为结构化 JSON 对象。
      */
-    @GetMapping("/exchange-rate")
+    @GetMapping("/api/exchange-rates")
     public ApiResponse<ExchangeRateResponse> exchangeRate(@RequestParam("from") String from,
                                                           @RequestParam("to") String to,
                                                           @RequestParam(value = "amount", required = false) Double amount) {
@@ -170,7 +169,7 @@ public class ToolController {
      * 工具接收"每期手续费率(%)"，这里由年化利率反推：feeRate = annualRate * (months+1)/(months*24)
      * （与工具内部 annualRate = feeRate * months/(months+1) * 24 的公式互逆）。
      */
-    @PostMapping("/installment")
+    @PostMapping("/api/installment-calculations")
     public ApiResponse<String> installment(@RequestBody InstallmentRequest request) {
         int months = request.months() == null ? 12 : request.months();
         double annualRate = nz(request.annualRate());

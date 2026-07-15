@@ -24,7 +24,6 @@ import java.util.regex.Pattern;
  * 投资分析 REST 接口：K 线图生成、组合优化、风险收益散点数据。
  */
 @RestController
-@RequestMapping("/api/analysis")
 public class AnalysisController {
 
     // 各类资产的预期年化收益率(%)与年化波动率(%)假设：{收益率, 波动率}
@@ -55,7 +54,7 @@ public class AnalysisController {
      * 生成指定标的 K 线图，返回结构化 JSON（含图片 URL 与涨跌信息）。
      * 解析 KlineChartTool 输出的多行文本，提取图片文件名并构造 /charts/<filename> URL。
      */
-    @GetMapping("/kline")
+    @GetMapping("/api/charts/kline")
     public ApiResponse<Map<String, Object>> kline(@RequestParam String symbol,
                                                   @RequestParam(defaultValue = "daily") String period,
                                                   @RequestParam(defaultValue = "30") Integer days) {
@@ -107,7 +106,7 @@ public class AnalysisController {
      * 仅取 stock/fund 资产，按类型赋予预期收益率/波动率假设，相关系数矩阵对角线为 1、其余为默认值。
      * 返回结构化 JSON：{weights: {assetName: weight}, expectedReturn, volatility, sharpeRatio}
      */
-    @GetMapping("/optimize")
+    @GetMapping("/api/portfolios/optimization")
     public ApiResponse<Map<String, Object>> optimize() {
         Long userId = SecurityUtil.currentUserId();
         List<Asset> assets = portfolioService.list(userId);
@@ -232,7 +231,7 @@ public class AnalysisController {
      * 基于各资产 30 日历史净值计算年化收益率与年化波动率，返回散点图数据。
      * 返回元素结构：{name, annualReturn, annualVolatility, marketValue}
      */
-    @GetMapping("/risk-return")
+    @GetMapping("/api/portfolios/risk-return")
     public ApiResponse<List<Map<String, Object>>> riskReturn() {
         Long userId = SecurityUtil.currentUserId();
         List<Asset> assets = portfolioService.list(userId);

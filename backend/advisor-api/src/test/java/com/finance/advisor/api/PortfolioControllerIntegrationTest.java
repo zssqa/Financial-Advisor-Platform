@@ -52,7 +52,7 @@ class PortfolioControllerIntegrationTest extends AbstractSecurityMvcTest {
 
     @Test
     void list_withoutToken_returnsUnauthorized() throws Exception {
-        mockMvc.perform(get("/api/portfolio/list"))
+        mockMvc.perform(get("/api/portfolios"))
                 .andExpect(status().isUnauthorized());
     }
 
@@ -61,7 +61,7 @@ class PortfolioControllerIntegrationTest extends AbstractSecurityMvcTest {
         Asset a = asset(10L, "stock", "sh600036", "100", "10");
         when(portfolioService.list(1L)).thenReturn(List.of(a));
 
-        mockMvc.perform(get("/api/portfolio/list")
+        mockMvc.perform(get("/api/portfolios")
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
@@ -78,7 +78,7 @@ class PortfolioControllerIntegrationTest extends AbstractSecurityMvcTest {
             return a;
         });
 
-        mockMvc.perform(post("/api/portfolio")
+        mockMvc.perform(post("/api/portfolios")
                         .contentType(MediaType.APPLICATION_JSON)
                         .header("Authorization", "Bearer " + token)
                         .content("{\"type\":\"stock\",\"symbol\":\"sh600036\",\"amount\":\"100\",\"costPrice\":\"10\"}"))
@@ -91,7 +91,7 @@ class PortfolioControllerIntegrationTest extends AbstractSecurityMvcTest {
     void delete_ownAsset_succeeds() throws Exception {
         doNothing().when(portfolioService).delete(1L, 5L);
 
-        mockMvc.perform(delete("/api/portfolio/5")
+        mockMvc.perform(delete("/api/portfolios/5")
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200));
@@ -102,7 +102,7 @@ class PortfolioControllerIntegrationTest extends AbstractSecurityMvcTest {
         doThrow(new IllegalArgumentException("资产不存在或无权操作"))
                 .when(portfolioService).delete(1L, 999L);
 
-        mockMvc.perform(delete("/api/portfolio/999")
+        mockMvc.perform(delete("/api/portfolios/999")
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(404));

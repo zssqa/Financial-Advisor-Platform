@@ -23,7 +23,7 @@ import java.util.Set;
  * 资产组合 REST 接口。所有接口均需登录（SecurityConfig 已要求 /api/** 认证）。
  */
 @RestController
-@RequestMapping("/api/portfolio")
+@RequestMapping("/api/portfolios")
 public class PortfolioController {
 
     private final PortfolioService portfolioService;
@@ -34,7 +34,7 @@ public class PortfolioController {
         this.priceAlertService = priceAlertService;
     }
 
-    @GetMapping("/list")
+    @GetMapping
     public ApiResponse<List<Asset>> list() {
         return ApiResponse.success(portfolioService.list(SecurityUtil.currentUserId()));
     }
@@ -87,7 +87,7 @@ public class PortfolioController {
         return ApiResponse.success(portfolioService.getPortfolioHistory(SecurityUtil.currentUserId(), days));
     }
 
-    @PostMapping("/import")
+    @PostMapping(":import")
     public ApiResponse<AssetImportResult> importAssets(@RequestParam("file") MultipartFile file) {
         if (file.isEmpty()) {
             return ApiResponse.error(400, "文件为空");

@@ -2,6 +2,7 @@ package com.finance.advisor.api.controller;
 
 import com.finance.advisor.agent.core.FinancialAdvisorAgent;
 import com.finance.advisor.api.dto.ChatRequest;
+import com.finance.advisor.common.dto.ApiResponse;
 import com.finance.advisor.user.User;
 import com.finance.advisor.user.UserService;
 import com.alibaba.cloud.ai.graph.NodeOutput;
@@ -16,6 +17,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Sinks;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -36,7 +38,7 @@ public class ChatController {
         this.userService = userService;
     }
 
-    @PostMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @PostMapping(value = "/messages:stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<String> streamChat(@RequestBody ChatRequest request) {
         String message = request.getMessage();
         if (message == null || message.isBlank()) {
@@ -134,8 +136,8 @@ public class ChatController {
         return sink.asFlux();
     }
 
-    @PostMapping("/call")
-    public String callChat(@RequestBody ChatRequest request) {
+    @PostMapping("/messages")
+    public ApiResponse<Map<String, Object>> callChat(@RequestBody ChatRequest request) {
         String message = request.getMessage();
         // 风险等级优先从 DB（User.riskLevel）读取，DB 读不到时回退到请求中的 riskLevel
         Long userId = currentUserId();
@@ -155,12 +157,15 @@ public class ChatController {
             enhancedMessage = sb.toString();
         }
 
+        String result;
         if (riskLevel != null && !riskLevel.isBlank()) {
-            return (userId != null)
+            result = (userId != null)
                     ? advisorAgent.call(enhancedMessage, userId, riskLevel).getText()
                     : advisorAgent.call(enhancedMessage, riskLevel).getText();
+        } else {
+            result = advisorAgent.call(enhancedMessage).getText();
         }
-        return advisorAgent.call(enhancedMessage).getText();
+        return ApiResponse.success(Map.of("content", result, "role", "assistant"));
     }
 
     /**

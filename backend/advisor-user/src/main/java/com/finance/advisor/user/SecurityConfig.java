@@ -15,7 +15,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
  * Spring Security 配置：无状态会话 + JWT 过滤器。
  *
  * 放行：/api/auth/register、/api/auth/login、/actuator/**、/error。
- * 其余（含 /api/auth/profile、/api/auth/risk-level 及 SSE 端点 /api/chat/stream）均需认证（携带有效 token）。
+ * 其余（含 /api/auth/profile、/api/auth/risk-level 及 SSE 端点 /api/chat/messages:stream）均需认证（携带有效 token）。
  * 未认证请求统一返回 401 Unauthorized。
  */
 @Configuration

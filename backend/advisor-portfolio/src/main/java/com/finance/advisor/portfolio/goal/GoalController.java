@@ -17,7 +17,7 @@ import java.util.List;
  * 财务目标 REST 接口。所有接口均需登录。
  */
 @RestController
-@RequestMapping("/api/goal")
+@RequestMapping("/api/goals")
 public class GoalController {
 
     private final GoalService goalService;
@@ -26,7 +26,7 @@ public class GoalController {
         this.goalService = goalService;
     }
 
-    @GetMapping("/list")
+    @GetMapping
     public ApiResponse<List<Goal>> list() {
         return ApiResponse.success(goalService.list(SecurityUtil.currentUserId()));
     }

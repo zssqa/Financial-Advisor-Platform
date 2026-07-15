@@ -3,9 +3,9 @@ package com.finance.advisor.portfolio;
 import com.finance.advisor.common.dto.ApiResponse;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -18,7 +18,7 @@ import java.util.Map;
  * 价格预警 REST 接口。所有接口均需登录（SecurityConfig 已要求 /api/** 认证）。
  */
 @RestController
-@RequestMapping("/api/alert")
+@RequestMapping("/api/alerts")
 public class PriceAlertController {
 
     private final PriceAlertService priceAlertService;
@@ -63,7 +63,7 @@ public class PriceAlertController {
     /**
      * 查询当前用户预警列表。
      */
-    @GetMapping("/list")
+    @GetMapping
     public ApiResponse<List<Map<String, Object>>> list() {
         return ApiResponse.success(priceAlertService.listAlerts(SecurityUtil.currentUserId()));
     }
@@ -79,9 +79,14 @@ public class PriceAlertController {
 
     /**
      * 标记预警已读。
+     * 请求体：{ "read": true }
      */
-    @PutMapping("/{id}/read")
-    public ApiResponse<Void> markAsRead(@PathVariable Long id) {
+    @PatchMapping("/{id}")
+    public ApiResponse<Void> markAsRead(@PathVariable Long id, @RequestBody Map<String, Object> body) {
+        Object readFlag = body != null ? body.get("read") : null;
+        if (!Boolean.TRUE.equals(readFlag)) {
+            return ApiResponse.success(null);
+        }
         priceAlertService.markAsRead(id, SecurityUtil.currentUserId());
         return ApiResponse.success(null);
     }

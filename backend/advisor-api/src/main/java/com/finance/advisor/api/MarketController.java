@@ -21,7 +21,7 @@ import java.util.regex.Pattern;
  * 市场行情 REST 接口：提供四大指数行情、市场情绪、金融日历查询。
  */
 @RestController
-@RequestMapping("/api/market")
+@RequestMapping("/api/markets")
 public class MarketController {
 
     // 四大指数代码与中文名

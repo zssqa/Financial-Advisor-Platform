@@ -1,7 +1,7 @@
 package com.finance.advisor.api.controller;
 
+import com.finance.advisor.common.dto.ApiResponse;
 import com.finance.advisor.rag.DocumentIngestionService;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.slf4j.Logger;
@@ -29,26 +29,21 @@ public class ChatFileController {
         this.ingestionService = ingestionService;
     }
 
-    @PostMapping("/upload")
-    public ResponseEntity<Map<String, Object>> uploadFile(@RequestParam("file") MultipartFile file) {
-        Map<String, Object> response = new HashMap<>();
-
+    @PostMapping("/files")
+    public ApiResponse<Map<String, Object>> uploadFile(@RequestParam("file") MultipartFile file) {
         if (file.isEmpty()) {
-            response.put("error", "文件为空");
-            return ResponseEntity.badRequest().body(response);
+            return ApiResponse.error(400, "文件为空");
         }
 
         if (file.getSize() > MAX_FILE_SIZE) {
-            response.put("error", "文件大小超过10MB限制");
-            return ResponseEntity.badRequest().body(response);
+            return ApiResponse.error(400, "文件大小超过10MB限制");
         }
 
         String filename = file.getOriginalFilename();
         String extension = getFileExtension(filename);
 
         if (!SUPPORTED_EXTENSIONS.contains(extension.toLowerCase())) {
-            response.put("error", "不支持的文件格式: " + extension);
-            return ResponseEntity.badRequest().body(response);
+            return ApiResponse.error(400, "不支持的文件格式: " + extension);
         }
 
         try {
@@ -57,6 +52,7 @@ public class ChatFileController {
 
             String fileId = UUID.randomUUID().toString().substring(0, 8);
 
+            Map<String, Object> response = new HashMap<>();
             response.put("fileId", fileId);
             response.put("fileName", filename);
             response.put("fileType", extension);
@@ -70,11 +66,10 @@ public class ChatFileController {
             log.info("对话文件上传成功: filename={}, size={}, textLength={}",
                     filename, file.getSize(), textContent.length());
 
-            return ResponseEntity.ok(response);
+            return ApiResponse.success(response);
         } catch (Exception e) {
             log.error("对话文件上传失败: {}", filename, e);
-            response.put("error", "文件解析失败: " + e.getMessage());
-            return ResponseEntity.internalServerError().body(response);
+            return ApiResponse.error(500, "文件解析失败: " + e.getMessage());
         }
     }
 

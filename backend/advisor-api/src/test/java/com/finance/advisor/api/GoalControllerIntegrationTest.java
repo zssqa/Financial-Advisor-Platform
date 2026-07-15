@@ -48,7 +48,7 @@ class GoalControllerIntegrationTest extends AbstractSecurityMvcTest {
 
     @Test
     void list_withoutToken_returnsUnauthorized() throws Exception {
-        mockMvc.perform(get("/api/goal/list"))
+        mockMvc.perform(get("/api/goals"))
                 .andExpect(status().isUnauthorized());
     }
 
@@ -56,7 +56,7 @@ class GoalControllerIntegrationTest extends AbstractSecurityMvcTest {
     void list_withToken_returnsCurrentUserGoals() throws Exception {
         when(goalService.list(1L)).thenReturn(List.of(goal(5L, "retirement", "10000", "1000")));
 
-        mockMvc.perform(get("/api/goal/list")
+        mockMvc.perform(get("/api/goals")
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
@@ -73,7 +73,7 @@ class GoalControllerIntegrationTest extends AbstractSecurityMvcTest {
             return g;
         });
 
-        mockMvc.perform(post("/api/goal")
+        mockMvc.perform(post("/api/goals")
                         .contentType(MediaType.APPLICATION_JSON)
                         .header("Authorization", "Bearer " + token)
                         .content("{\"type\":\"retirement\",\"targetAmount\":\"10000\",\"currentAmount\":\"0\"}"))
@@ -86,7 +86,7 @@ class GoalControllerIntegrationTest extends AbstractSecurityMvcTest {
     void delete_ownGoal_succeeds() throws Exception {
         doNothing().when(goalService).delete(1L, 5L);
 
-        mockMvc.perform(delete("/api/goal/5")
+        mockMvc.perform(delete("/api/goals/5")
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200));
@@ -97,7 +97,7 @@ class GoalControllerIntegrationTest extends AbstractSecurityMvcTest {
         doThrow(new IllegalArgumentException("目标不存在或无权操作"))
                 .when(goalService).delete(1L, 999L);
 
-        mockMvc.perform(delete("/api/goal/999")
+        mockMvc.perform(delete("/api/goals/999")
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(404));

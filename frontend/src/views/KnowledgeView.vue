@@ -171,7 +171,7 @@ async function loadDocuments() {
     loading.value = true
     try {
         const data = await listDocuments()
-        documents.value = Array.isArray(data) ? data : (data?.data || data?.list || [])
+        documents.value = Array.isArray(data) ? data : []
     } catch (e) {
         message.error('加载文档列表失败: ' + e.message)
     } finally {
@@ -181,8 +181,7 @@ async function loadDocuments() {
 
 async function loadStats() {
     try {
-        const data = await getStats()
-        stats.value = data?.data || data || {}
+        stats.value = await getStats() || {}
     } catch { /* ignore */ }
 }
 
@@ -195,7 +194,7 @@ async function handleSearch() {
     loading.value = true
     try {
         const data = await searchDocuments(q)
-        documents.value = Array.isArray(data) ? data : (data?.data || data?.list || [])
+        documents.value = Array.isArray(data) ? data : []
     } catch (e) {
         message.error('搜索失败: ' + e.message)
     } finally {

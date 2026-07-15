@@ -178,32 +178,18 @@ function formatPercent(v) {
     return p.toFixed(2) + '%'
 }
 
-// 解析后端响应：兼容 { data: ... } 包装或直接返回业务数据
-function unwrap(res) {
-    const body = res?.data
-    if (body && typeof body === 'object' && 'data' in body) return body.data
-    return body
-}
-
-// 从响应中提取列表数据
-function extractList(res) {
-    const d = unwrap(res)
-    if (Array.isArray(d)) return d
-    if (Array.isArray(d?.funds)) return d.funds
-    if (Array.isArray(d?.list)) return d.list
-    if (Array.isArray(d?.data)) return d.data
-    return []
-}
-
 // 正数校验规则（金额必须为正数）
 function positiveRule(label) {
     return {
-        type: 'number',
         required: true,
         validator: (rule, value) => {
-            if (value == null) throw new Error(`请输入${label}`)
-            if (Number(value) <= 0) throw new Error(`${label}必须为正数`)
-            return true
+            if (value == null || value === '' || Number.isNaN(Number(value))) {
+                return Promise.reject(`请输入${label}`)
+            }
+            if (Number(value) <= 0) {
+                return Promise.reject(`${label}必须为正数`)
+            }
+            return Promise.resolve()
         },
         trigger: ['blur', 'change']
     }
@@ -212,12 +198,15 @@ function positiveRule(label) {
 // 非负校验规则（可选扣除项，允许为 0）
 function nonNegativeRule(label) {
     return {
-        type: 'number',
         required: false,
         validator: (rule, value) => {
-            if (value == null) return true
-            if (Number(value) < 0) throw new Error(`${label}不能为负数`)
-            return true
+            if (value == null || value === '' || Number.isNaN(Number(value))) {
+                return Promise.resolve()
+            }
+            if (Number(value) < 0) {
+                return Promise.reject(`${label}不能为负数`)
+            }
+            return Promise.resolve()
         },
         trigger: ['blur', 'change']
     }
@@ -254,9 +243,13 @@ const riskLevelOptions = [
 const fundRules = {
     minReturn: nonNegativeRule('最低收益率'),
     maxRiskLevel: {
-        type: 'number',
         required: true,
-        message: '请选择最大风险等级',
+        validator: (rule, value) => {
+            if (value == null || value === '') {
+                return Promise.reject('请选择最大风险等级')
+            }
+            return Promise.resolve()
+        },
         trigger: ['change', 'blur']
     }
 }
@@ -296,7 +289,7 @@ async function handleFund() {
             minReturn: Number(fundForm.minReturn) || null,
             maxRisk: fundForm.maxRiskLevel
         })
-        fundList.value = extractList(res)
+        fundList.value = Array.isArray(res) ? res : (Array.isArray(res?.funds) ? res.funds : [])
         fundLoaded.value = true
         message.success(`筛选完成，共 ${fundList.value.length} 只基金`)
     } catch (e) {
@@ -331,8 +324,22 @@ const targetCurrencyOptions = [
 ]
 
 const exchangeRules = {
-    from: { required: true, message: '请选择源货币', trigger: ['change', 'blur'] },
-    to: { required: true, message: '请选择目标货币', trigger: ['change', 'blur'] },
+    from: {
+        required: true,
+        validator: (rule, value) => {
+            if (!value) return Promise.reject('请选择源货币')
+            return Promise.resolve()
+        },
+        trigger: ['change', 'blur']
+    },
+    to: {
+        required: true,
+        validator: (rule, value) => {
+            if (!value) return Promise.reject('请选择目标货币')
+            return Promise.resolve()
+        },
+        trigger: ['change', 'blur']
+    },
     amount: positiveRule('换算金额')
 }
 
@@ -359,7 +366,7 @@ async function handleExchange() {
     exchangeLoading.value = true
     try {
         const res = await exchangeRate(exchangeForm.from, exchangeForm.to, exchangeForm.amount)
-        exchangeResult.value = unwrap(res) || {}
+        exchangeResult.value = res || {}
         message.success('换算完成')
     } catch (e) {
         message.error('换算失败：' + (e?.response?.data?.message || e?.message || '未知错误'))

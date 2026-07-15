@@ -1,8 +1,6 @@
 package com.finance.advisor.user;
 
 import com.finance.advisor.common.dto.ApiResponse;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -32,31 +30,31 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<ApiResponse<AuthResponse>> register(@RequestBody RegisterRequest request) {
+    public ApiResponse<AuthResponse> register(@RequestBody RegisterRequest request) {
         User user = userService.register(request.getUsername(), request.getPassword());
         String token = jwtService.generateToken(user.getId(), user.getUsername());
         AuthResponse body = new AuthResponse(token, user.getId(), user.getUsername(), user.getRiskLevel());
-        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(body));
+        return ApiResponse.success(body);
     }
 
     @PostMapping("/login")
-    public ResponseEntity<ApiResponse<AuthResponse>> login(@RequestBody LoginRequest request) {
+    public ApiResponse<AuthResponse> login(@RequestBody LoginRequest request) {
         User user = userService.login(request.getUsername(), request.getPassword());
         String token = jwtService.generateToken(user.getId(), user.getUsername());
         AuthResponse body = new AuthResponse(token, user.getId(), user.getUsername(), user.getRiskLevel());
-        return ResponseEntity.ok(ApiResponse.success(body));
+        return ApiResponse.success(body);
     }
 
     @GetMapping("/profile")
-    public ResponseEntity<ApiResponse<UserProfile>> profile() {
+    public ApiResponse<UserProfile> profile() {
         User user = userService.findById(currentUserId());
-        return ResponseEntity.ok(ApiResponse.success(toProfile(user)));
+        return ApiResponse.success(toProfile(user));
     }
 
     @PutMapping("/risk-level")
-    public ResponseEntity<ApiResponse<UserProfile>> updateRiskLevel(@RequestBody RiskLevelRequest request) {
+    public ApiResponse<UserProfile> updateRiskLevel(@RequestBody RiskLevelRequest request) {
         User user = userService.updateRiskLevel(currentUserId(), request.getRiskLevel());
-        return ResponseEntity.ok(ApiResponse.success(toProfile(user)));
+        return ApiResponse.success(toProfile(user));
     }
 
     private Long currentUserId() {
