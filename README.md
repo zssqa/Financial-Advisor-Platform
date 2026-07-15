@@ -1,6 +1,8 @@
 # 金融理财顾问平台 (Financial Advisor Platform)
 
-基于 **Spring AI Alibaba** 框架构建的金融领域多智能体对话平台，采用 **ReAct 模式**实现智能理财顾问。集成 17 个金融工具（全部注册到 Agent）、大模型推理、联网搜索、RAG 知识库（混合检索）、SSE 流式对话、投资组合管理、Markowitz 组合优化、真实 K 线图、价格预警、定时任务、理财目标规划等能力，为个人投资者提供专业的金融理财咨询服务。
+基于 **Spring AI Alibaba** 框架构建的金融领域多智能体对话平台，采用 **ReAct 模式**实现智能理财顾问。集成 17 个金融工具（全部注册到 Agent）、大模型推理、联网搜索、RAG 知识库（混合检索）、SSE 流式对话、投资组合管理、Markowitz 组合优化、价格预警、定时任务、理财目标规划等能力，为个人投资者提供专业的金融理财咨询服务。
+
+> ℹ️ **功能弃用提示**: K 线图生成、个人所得税计算、贷款月供计算、信用卡分期计算四个功能已**暂时弃用**（前端入口已下线，后端代码保留）。详见 [金融工具章节](#3-金融工具-17-个) 的弃用说明。
 
 ---
 
@@ -63,7 +65,7 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                         用户浏览器 (Vue 3 + Naive UI)                         │
+│                         用户浏览器 (Vue 3 + Ant Design Vue)                    │
 │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐         │
 │  │ 智能对话  │ │ 我的资产  │ │ 理财目标  │ │ 市场行情  │ │ 投资分析  │         │
 │  └──────────┘ └──────────┘ └──────────┘ └──────────┘ └──────────┘         │
@@ -96,8 +98,8 @@
 │                             │                                                │
 │  ┌──────────────────────────┴────────────────────────────────────────────┐  │
 │  │                    advisor-tool (17 个金融工具)                          │  │
-│  │  Tavily搜索 │ 基金净值 │ 股票行情 │ K线图(真实) │ 组合优化(Markowitz)  │  │
-│  │  汇率 │ 个税计算 │ 基金筛选 │ 风险评估 │ 信用卡分期 │ 保险对比 │ ...    │  │
+│  │  Tavily搜索 │ 基金净值 │ 股票行情 │ ~~K线图(已弃用)~~ │ 组合优化(Markowitz) │  │
+│  │  汇率 │ ~~个税(已弃用)~~ │ 基金筛选 │ 风险评估 │ ~~信用卡分期(已弃用)~~ │ ...│  │
 │  └───────────────────────────────────────────────────────────────────────┘  │
 │                             │                                                │
 │  ┌──────────────────────────┴────────────────────────────────────────────┐  │
@@ -144,9 +146,9 @@
 | **向量数据库** | PostgreSQL + pgvector | pg16 | cosine similarity 语义检索 |
 | **认证** | JWT (jjwt) | 0.12.6 | HS256 签名，24h 过期 |
 | **搜索引擎** | Tavily API | - | 实时财经资讯，限定近 7 天 |
-| **K 线数据** | 新浪行情 API + 东方财富 API | - | 真实 OHLC 数据，自动降级 |
+| **K 线数据** | 新浪行情 API + 东方财富 API | - | ⚠️ 已弃用：真实 OHLC 数据，自动降级 |
 | **组合优化** | Apache Commons Math3 | 3.6.1 | Markowitz 均值-方差模型 |
-| **图表生成** | XChart | 3.8.8 | K 线蜡烛图 PNG 输出 |
+| **图表生成** | XChart | 3.8.8 | ⚠️ 已弃用：K 线蜡烛图 PNG 输出 |
 | **可观测性** | Actuator + Prometheus + Grafana | - | 6 面板监控仪表盘 |
 | **Agent 持久化** | PostgresSaver (默认) | - | 检查点持久化到数据库 |
 | **配置中心** | Nacos (可选) | ^3.1+ | 动态配置刷新 |
@@ -157,8 +159,8 @@
 |---|---|---|---|
 | **前端框架** | Vue 3 (Composition API) | ^3.4.0 | `<script setup>` 语法 |
 | **前端路由** | Vue Router | ^4.3.0 | History 模式 + 路由守卫 |
-| **前端组件库** | Naive UI | ^2.44.1 | 暗色主题、表单、日期选择器 |
-| **图标库** | @vicons/ionicons5 | ^0.12.0 | 侧边栏/操作图标 |
+| **前端组件库** | Ant Design Vue | ^4.2.6 | 暗色主题算法、表单、日期选择器 |
+| **图标库** | @ant-design/icons-vue | ^7.0.1 | 侧边栏/操作图标 |
 | **构建工具** | Vite | ^5.4.0 | HMR 热更新、代理、dedupe |
 | **HTTP 客户端** | Axios | ^1.7.0 | 拦截器、JWT 注入、401 处理 |
 | **Markdown 渲染** | markdown-it + highlight.js | ^14.0.0 / ^11.9.0 | 代码高亮、表格、链接 |
@@ -198,18 +200,18 @@ financial-advisor-platform/
 │   │
 │   ├── advisor-tool/                     # 工具层 (17 个金融工具，全部注册到 Agent)
 │   │   └── src/main/java/.../tool/
-│   │       ├── FinancialTools.java             # 基础工具集 (联网搜索/复利/贷款/研报检索)
+│   │       ├── FinancialTools.java             # 基础工具集 (联网搜索/复利/⚠️贷款月供已弃用/研报检索)
 │   │       └── finance/
 │   │           ├── StockQuoteTool.java             # 股票实时行情 (新浪 API)
 │   │           ├── FundNavTool.java                # 基金净值查询 (东方财富 API)
-│   │           ├── KlineChartTool.java             # K线图生成 (真实行情 + XChart 蜡烛图)
-│   │           ├── KlineFetcher.java               # K线数据获取 (新浪 API + 东方财富降级)
+│   │           ├── KlineChartTool.java             # ⚠️已弃用 K线图生成 (真实行情 + XChart 蜡烛图)
+│   │           ├── KlineFetcher.java               # ⚠️已弃用 K线数据获取 (新浪 API + 东方财富降级)
 │   │           ├── PortfolioOptimizerTool.java     # 投资组合优化 (Markowitz + Commons Math3)
 │   │           ├── RiskQuestionnaireTool.java      # 风险评估问卷 (R1-R5)
 │   │           ├── FundScreenerTool.java           # 基金筛选器
 │   │           ├── ExchangeRateTool.java           # 汇率转换
-│   │           ├── TaxCalculatorTool.java          # 个人所得税计算 (累进税率)
-│   │           ├── CreditCardInstallmentTool.java  # 信用卡分期计算
+│   │           ├── TaxCalculatorTool.java          # ⚠️已弃用 个人所得税计算 (累进税率)
+│   │           ├── CreditCardInstallmentTool.java  # ⚠️已弃用 信用卡分期计算
 │   │           ├── InsuranceCompareTool.java       # 保险产品对比分析
 │   │           ├── FinancialCalendarTool.java      # 金融日历查询
 │   │           ├── SavingsGoalTool.java            # 储蓄目标规划
@@ -259,8 +261,8 @@ financial-advisor-platform/
 │   │       │   ├── DocumentController.java       # 知识库文档管理
 │   │       │   └── SessionController.java        # 会话管理
 │   │       ├── MarketController.java             # 市场行情 (指数/情绪/日历)
-│   │       ├── AnalysisController.java           # 投资分析 (K线/优化/风险收益)
-│   │       ├── ToolController.java               # 工具箱 (个税/基金筛选/汇率/分期)
+│   │       ├── AnalysisController.java           # 投资分析 (⚠️K线已弃用/优化/风险收益)
+│   │       ├── ToolController.java               # 工具箱 (⚠️个税已弃用/基金筛选/汇率/⚠️分期已弃用)
 │   │       └── dto/                              # ChatRequest / ChatResponse
 │   │
 │   ├── advisor-bootstrap/                # 启动入口
@@ -275,7 +277,7 @@ financial-advisor-platform/
 │   │
 │   └── Dockerfile                                # 后端镜像 (eclipse-temurin:17-jre-alpine)
 │
-├── frontend/                             # Vue 3 + Naive UI 前端
+├── frontend/                             # Vue 3 + Ant Design Vue 前端
 │   ├── src/
 │   │   ├── views/                        # 10 个页面
 │   │   │   ├── ChatView.vue                # 智能对话 (SSE 流式 + 推理链 + 文件上传)
@@ -283,8 +285,8 @@ financial-advisor-platform/
 │   │   │   ├── PortfolioView.vue           # 资产组合管理 (CRUD + 导入 + 汇总)
 │   │   │   ├── GoalView.vue                # 理财目标管理 (CRUD + 进度)
 │   │   │   ├── MarketView.vue              # 市场行情 (四大指数 + 情绪仪表盘 + 金融日历)
-│   │   │   ├── AnalysisView.vue            # 投资分析 (真实K线图 + 优化权重饼图 + 散点图)
-│   │   │   ├── ToolboxView.vue             # 工具箱 (个税/基金筛选/汇率/分期)
+│   │   │   ├── AnalysisView.vue            # 投资分析 (优化权重饼图 + 风险收益散点图)
+│   │   │   ├── ToolboxView.vue             # 工具箱 (基金筛选/汇率换算)
 │   │   │   ├── KnowledgeView.vue           # 知识库管理 (上传/搜索/联网导入)
 │   │   │   ├── LoginView.vue               # 登录/注册
 │   │   │   └── SettingsView.vue            # 系统设置
@@ -296,10 +298,10 @@ financial-advisor-platform/
 │   │   │   ├── MarkdownContent.vue         # Markdown 渲染
 │   │   │   ├── AssetForm.vue               # 资产表单
 │   │   │   └── GoalForm.vue                # 目标表单
-│   │   ├── api/                          # 10 个 API 模块
+│   │   ├── api/                          # 9 个 API 模块
 │   │   │   ├── http.js                     # axios 实例 (JWT 拦截器)
 │   │   │   ├── auth.js / chat.js / documents.js / portfolio.js
-│   │   │   ├── goal.js / session.js
+│   │   │   ├── goal.js
 │   │   │   ├── market.js                   # 市场行情 API
 │   │   │   ├── analysis.js                 # 投资分析 API
 │   │   │   └── tool.js                     # 工具箱 API
@@ -438,27 +440,35 @@ Agent 的系统提示词包含以下关键部分:
 
 全部 17 个工具已注册到生产 Agent，LLM 可根据用户意图自由调用:
 
+> ⚠️ **弃用说明**: 以下 4 个工具/功能已**暂时弃用**，前端入口已移除，后端代码保留但不维护：
+> - `calculate_loan_interest` — 贷款月供计算
+> - `generate_kline_chart` — K 线图生成
+> - `tax_calculator` — 个人所得税计算
+> - `credit_card_installment` — 信用卡分期计算
+>
+> 弃用原因：功能与核心理财顾问场景关联度较低，且 K 线、个税等入口已从工具箱/投资分析页面下线。后续视用户反馈决定是否重新启用。
+
 | # | 工具名 | 功能 | 底层实现 |
 |---|---|---|---|
 | 1 | `tavily_web_search` | 联网搜索财经资讯 (近 7 天) | Tavily API + `topic: "news"` + `days: 7`，自动入库相关结果 |
 | 2 | `calculate_compound_interest` | 复利计算 | 复利公式: A = P(1 + r/n)^(nt) |
-| 3 | `calculate_loan_interest` | 贷款月供计算 | 等额本息公式 |
+| 3 | `calculate_loan_interest` | ⚠️ **已弃用** 贷款月供计算 | 等额本息公式 (前端入口已移除) |
 | 4 | `search_research_reports` | 知识库研报检索 | **HybridSearchService** (向量 + 关键词 + RRF 融合) |
 | 5 | `risk_questionnaire` | 风险评估问卷 (R1-R5) | 评分算法 → 风险等级 + 配置建议 |
 | 6 | `query_stock_quote` | 股票实时行情 | 新浪行情 API (GBK 解码 + Referer 防拒) |
 | 7 | `query_fund_nav` | 基金净值查询 | 东方财富基金 API (正则提取) |
-| 8 | `generate_kline_chart` | K线图生成 | **真实行情** (新浪 API + 东方财富降级) + XChart 蜡烛图 |
+| 8 | `generate_kline_chart` | ⚠️ **已弃用** K线图生成 | **真实行情** (新浪 API + 东方财富降级) + XChart 蜡烛图 (前端入口已移除) |
 | 9 | `portfolio_optimizer` | 投资组合优化 | **Markowitz 均值-方差** (Commons Math3 SimplexOptimizer) |
 | 10 | `fund_screener` | 基金筛选器 | 多维度筛选 (类型/收益率/规模/费率) |
 | 11 | `exchange_rate` | 汇率转换 | 实时汇率 API |
-| 12 | `tax_calculator` | 个人所得税计算 | 累进税率表 (3%-45% 七级) |
-| 13 | `credit_card_installment` | 信用卡分期计算 | 等额手续费公式 |
+| 12 | `tax_calculator` | ⚠️ **已弃用** 个人所得税计算 | 累进税率表 (3%-45% 七级) (前端入口已移除) |
+| 13 | `credit_card_installment` | ⚠️ **已弃用** 信用卡分期计算 | 等额手续费公式 (前端入口已移除) |
 | 14 | `insurance_compare` | 保险产品对比 | 多维度对比分析 (重疾/医疗/意外/寿险/养老) |
 | 15 | `financial_calendar` | 金融日历查询 | 财报发布、分红派息等事件日历 |
 | 16 | `savings_goal` | 储蓄目标规划 | 目标倒推算法 (每月需存金额) |
 | 17 | `market_sentiment` | 市场情绪指数 | 多指标综合分析 (贪婪/恐惧) |
 
-**K 线图工具详解**:
+**K 线图工具详解** ⚠️ *已弃用*:
 - 调用新浪行情 API 获取最近 60 个交易日真实 OHLC 数据
 - 请求头携带 `Referer: https://finance.sina.com.cn` 防止被拒
 - 响应使用 GBK 解码 (新浪 API 特殊编码)
@@ -473,7 +483,7 @@ Agent 的系统提示词包含以下关键部分:
 - 失败时降级返回等权重基准
 - 返回: 最优权重 + 预期年化收益 + 预期波动率 + 夏普比率
 
-**个税计算工具**:
+**个税计算工具** ⚠️ *已弃用*:
 - 采用中国个人所得税累进税率表 (7 级: 3%-45%)
 - 支持专项扣除 (子女教育/继续教育/大病医疗/住房贷款/住房租金/赡养老人)
 - 支持社保公积金扣除
@@ -849,7 +859,7 @@ scrape_configs:
 
 ## 数据库表结构
 
-所有环境统一使用 `financial_rag` 数据库，共 **8 张表**:
+所有环境统一使用 `financial_rag` 数据库，共 **9 张表**:
 
 ### users — 用户表
 
@@ -930,6 +940,20 @@ scrape_configs:
 | `created_at` | BIGINT | 创建时间 |
 
 唯一约束: `UNIQUE(asset_id, snapshot_date)`
+
+### index_quote — 市场指数行情快照表
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `id` | BIGSERIAL (PK) | 主键 |
+| `symbol` | VARCHAR(32) | 指数代码 |
+| `name` | VARCHAR(128) | 指数名称 |
+| `price` | NUMERIC(20,4) | 当前价格 |
+| `change_percent` | NUMERIC(10,4) | 涨跌幅 |
+| `snapshot_date` | DATE | 快照日期 |
+| `created_at` | BIGINT | 创建时间 |
+
+唯一约束: `UNIQUE(symbol, snapshot_date)` 支持 UPSERT
 
 ### price_alerts — 价格预警表
 
@@ -1110,7 +1134,7 @@ docker compose up -d --build
 
 | 方法 | 路径 | 说明 |
 |---|---|---|
-| GET | `/api/analysis/kline?symbol=sh600036` | 生成真实 K 线图 (返回图表路径) (需 JWT) |
+| GET | `/api/analysis/kline?symbol=sh600036` | ⚠️ **已弃用** 生成真实 K 线图 (返回图表路径) (需 JWT) |
 | GET | `/api/analysis/optimize` | 组合优化 (Markowitz 最优权重 + 预期收益/波动率/夏普) (需 JWT) |
 | GET | `/api/analysis/risk-return` | 风险收益散点图数据 (各资产年化收益与波动率) (需 JWT) |
 
@@ -1118,10 +1142,10 @@ docker compose up -d --build
 
 | 方法 | 路径 | 说明 |
 |---|---|---|
-| POST | `/api/tool/tax` | 个税计算 `{annualIncome, socialInsurance, specialDeduction}` (需 JWT) |
+| POST | `/api/tool/tax` | ⚠️ **已弃用** 个税计算 `{annualIncome, socialInsurance, specialDeduction}` (需 JWT) |
 | POST | `/api/tool/fund-screener` | 基金筛选 `{fundType, minReturn, maxRisk}` (需 JWT) |
 | GET | `/api/tool/exchange-rate?from=USD&to=CNY&amount=100` | 汇率换算 (需 JWT) |
-| POST | `/api/tool/installment` | 信用卡分期 `{totalAmount, months, annualRate}` (需 JWT) |
+| POST | `/api/tool/installment` | ⚠️ **已弃用** 信用卡分期 `{totalAmount, months, annualRate}` (需 JWT) |
 
 ### 价格预警接口
 
@@ -1146,8 +1170,8 @@ docker compose up -d --build
 | `/portfolio` | `PortfolioView` | 资产组合管理 | 我的资产 | `requiresAuth` |
 | `/goal` | `GoalView` | 理财目标管理 | 理财目标 | `requiresAuth` |
 | `/market` | `MarketView` | 市场行情 (指数/情绪/日历) | 市场行情 | `requiresAuth` |
-| `/analysis` | `AnalysisView` | 投资分析 (K线/优化/散点图) | 投资分析 | `requiresAuth` |
-| `/toolbox` | `ToolboxView` | 工具箱 (个税/筛选/汇率/分期) | 工具箱 | `requiresAuth` |
+| `/analysis` | `AnalysisView` | 投资分析 (优化/散点图) | 投资分析 | `requiresAuth` |
+| `/toolbox` | `ToolboxView` | 工具箱 (基金筛选/汇率换算) | 工具箱 | `requiresAuth` |
 | `/knowledge` | `KnowledgeView` | 知识库管理 | 知识库 | `requiresAuth` |
 | `/dashboard` | `DashboardView` | 仪表盘 (趋势/AI建议/预警) | 仪表盘 | `requiresAuth` |
 | `/settings` | `SettingsView` | 系统设置 | 设置 | `requiresAuth` |
@@ -1175,10 +1199,9 @@ docker compose up -d --build
 | `documents.js` | 知识库 API (upload/ingestWeb/list/search/stats/delete) |
 | `portfolio.js` | 资产 API (CRUD/summary/import/template/history) |
 | `goal.js` | 目标 API (CRUD/summary) |
-| `session.js` | 会话 API (create/get/list/delete) |
 | `market.js` | 市场行情 API (indices/sentiment/calendar) |
-| `analysis.js` | 投资分析 API (kline/optimize/riskReturn) |
-| `tool.js` | 工具箱 API (tax/fundScreener/exchangeRate/installment) |
+| `analysis.js` | 投资分析 API (optimize/riskReturn) |
+| `tool.js` | 工具箱 API (fundScreener/exchangeRate) |
 
 ### 字体规范
 
@@ -1318,6 +1341,8 @@ advisor:
 
 ## 测试
 
+### 后端测试
+
 ```powershell
 # 运行全部测试
 cd backend
@@ -1333,23 +1358,63 @@ mvn test -pl advisor-agent -am
 mvn clean package -DskipTests=true
 ```
 
+### 前端测试
+
+```powershell
+cd frontend
+npm run test:run    # 单次运行所有测试
+npm test            # watch 模式
+```
+
 ### 测试覆盖
+
+**后端 (138 个测试)**
 
 | 模块 | 测试类 | 测试数 | 说明 |
 |---|---|---|---|
 | advisor-tool | `KlineFetcherTest` | 5 | JSON解析/symbol透传/降级/空数组 |
 | advisor-tool | `PortfolioOptimizerToolTest` | 5 | 权重和=1/非负/夏普>等权重/单资产 |
-| advisor-tool | `FinancialToolsTest` | 4 | 联网搜索/复利/贷款/研报检索 |
+| advisor-tool | `FinancialToolsTest` | 4 | 联网搜索/复利/⚠️贷款月供已弃用/研报检索 |
+| advisor-tool | `FundScreenerToolTest` | 6 | equity/hybrid/bond/money/index/default 分支 |
+| advisor-tool | `StockQuoteToolTest` | 2 | 正常行情/price<=0 校验 |
+| advisor-tool | `ExchangeRateToolTest` | 2 | 汇率换算 |
+| advisor-tool | `FundNavToolTest` | 2 | 基金净值 |
+| advisor-tool | `KlineChartToolTest` | 2 | ⚠️已弃用 K线图生成 |
+| advisor-tool | 其他工具测试 | 8 | ⚠️个税已弃用/风险问卷/保险/储蓄/日历等 |
+| advisor-portfolio | `PortfolioServiceTest` | 18 | 组合管理/行情刷新/DB兜底降级/getLatestPriceFromHistory |
 | advisor-portfolio | `PriceAlertServiceTest` | 7 | CRUD/触发逻辑/统计 |
+| advisor-portfolio | `GoalServiceTest` | 4 | 目标 CRUD/进度计算 |
 | advisor-portfolio | `MarketDataRefreshTaskTest` | 3 | 调用顺序/容错/异常隔离 |
-| advisor-portfolio | `PortfolioServiceTest` | 多个 | 组合管理/行情刷新 |
-| advisor-portfolio | `AssetImportParserTest` | 多个 | Excel/CSV 解析 |
-| advisor-portfolio | `PortfolioPriceRefreshRunnerTest` | 多个 | 启动刷新 |
-| advisor-api | `ChatControllerIntegrationTest` | 多个 | SSE 流式/非流式 |
-| advisor-api | `AuthControllerIntegrationTest` | 多个 | 登录/注册/JWT |
-| advisor-agent | `AgentEndToEndTest` | 多个 | Agent 端到端 |
-| advisor-agent | `ConfirmationHookTest` | 多个 | 大额确认 |
-| advisor-agent | `ContextCompressionTest` | 多个 | 上下文压缩 |
+| advisor-portfolio | `PortfolioPriceRefreshRunnerTest` | 2 | 启动刷新 |
+| advisor-portfolio | `AssetImportParserTest` | 4 | Excel/CSV 解析 |
+| advisor-api | `AuthControllerIntegrationTest` | 6 | 登录/注册/JWT |
+| advisor-api | `PortfolioControllerIntegrationTest` | 5 | 资产 CRUD/用户隔离 |
+| advisor-api | `GoalControllerIntegrationTest` | 5 | 目标 CRUD |
+| advisor-api | `ChatControllerIntegrationTest` | 4 | SSE 流式/非流式 |
+| advisor-api | `MarketControllerTest` | 6 | 东方财富/新浪/DB兜底/UPSERT |
+| advisor-api | `AnalysisControllerTest` | 4 | optimize/riskReturn 解析 |
+| advisor-api | `ToolControllerTest` | 3 | fund-screener/exchange-rate 解析 |
+| advisor-user | `UserServiceTest` | 8 | 用户注册/登录/BCrypt |
+| advisor-user | `JwtServiceTest` | 5 | JWT 生成/验证/过期 |
+| advisor-agent | `AgentEndToEndTest` | 1 | Agent 端到端 |
+| advisor-agent | `ConfirmationHookTest` | 2 | 大额确认 |
+| advisor-agent | `ContextCompressionHookTest` | 3 | 上下文压缩 |
+| advisor-common | `SessionManagerTest` | 8 | 会话管理 |
+| advisor-rag | `DocumentIngestionIntegrationTest` | 1 | 文档摄入 |
+| advisor-bootstrap | `AdvisorApplicationTest` | 2 | 应用启动 |
+
+**前端 (35 个测试)**
+
+| 测试文件 | 测试数 | 说明 |
+|---|---|---|
+| `stores/auth.test.js` | 3 | setAuth/clear/isLoggedIn/localStorage 持久化 |
+| `stores/sessions.test.js` | 7 | 用户隔离/create/select/delete/rename/draft |
+| `api/http.test.js` | 4 | Bearer token 拦截器/401 清除重定向 |
+| `api/chat.test.js` | 4 | SSE 流解析/AbortController 中断 |
+| `views/DashboardView.test.js` | 3 | weightsAsPercent 归一化逻辑 |
+| `views/MarketView.test.js` | 14 | 字段别名/-100哨兵值/情绪分桶 |
+
+**测试基础设施**: 后端使用 JUnit 5 + Mockito (纯 Mock，无 Spring 上下文)；前端使用 Vitest + @vue/test-utils + happy-dom。
 
 ---
 
@@ -1625,15 +1690,15 @@ public FinancialAdvisorAgent(..., MyNewTool myNewTool) {
 ```vue
 <!-- frontend/src/views/MyNewView.vue -->
 <template>
-    <n-layout content-style="padding: 24px;">
-        <n-h1>新页面</n-h1>
+    <div style="padding: 24px;">
+        <h1>新页面</h1>
         <!-- 页面内容 -->
-    </n-layout>
+    </div>
 </template>
 
 <script setup>
-import { NLayout, NH1 } from 'naive-ui'
-// 显式导入所有 Naive UI 组件
+// Ant Design Vue 组件已全局注册 (app.use(Antd))，模板中直接使用 a-* 标签
+// 图标需显式导入: import { SettingOutlined } from '@ant-design/icons-vue'
 </script>
 ```
 
@@ -1653,11 +1718,11 @@ const routes = [
 
 ```javascript
 // frontend/src/components/SessionSidebar.vue
-import { NewIcon } from '@vicons/ionicons5'
+import { FileOutlined } from '@ant-design/icons-vue'
 
 const navItems = [
     // ...
-    { path: '/my-new-page', label: '新页面', icon: NewIcon }
+    { path: '/my-new-page', label: '新页面', icon: FileOutlined }
 ]
 ```
 
@@ -1693,10 +1758,10 @@ spring:
 
 ## 常见问题
 
-**Q: 前端组件报错 "Failed to resolve component: n-xxx"**
-Naive UI 组件必须在 `<script setup>` 中显式 import。例如:
+**Q: 前端组件报错 "Failed to resolve component: a-xxx"**
+Ant Design Vue 已通过 `app.use(Antd)` 全局注册，模板中直接使用 `<a-button>`、`<a-input>` 等标签即可。图标需显式导入:
 ```javascript
-import { NButton, NInput, NDataTable } from 'naive-ui'
+import { SettingOutlined } from '@ant-design/icons-vue'
 ```
 
 **Q: 前端页面空白或组件不渲染**
@@ -1743,8 +1808,8 @@ location / {
 **Q: 后端启动报 "advisor.jwt.secret 必须至少 32 字节"**
 JWT 密钥长度不足。设置环境变量 `JWT_SECRET` 为至少 32 个字符的字符串，或修改 `application.yml` 中的默认值。
 
-**Q: K 线图生成失败**
-检查网络是否能访问新浪行情 API (`https://hq.sinajs.cn`)。如果新浪 API 不可用，系统会自动降级到东方财富 API。
+**Q: K 线图生成失败** ⚠️ *该功能已弃用*
+K 线图功能已暂时弃用，前端入口已下线。后端代码保留以备后续重新启用。如需恢复，检查网络是否能访问新浪行情 API (`https://hq.sinajs.cn`)。如果新浪 API 不可用，系统会自动降级到东方财富 API。
 
 **Q: 组合优化返回等权重**
 Markowitz 优化失败时会降级返回等权重基准。可能原因:
@@ -1776,6 +1841,40 @@ tool_duration_seconds_sum / tool_duration_seconds_count
 # HTTP QPS
 rate(http_server_requests_seconds_count[1m])
 ```
+
+**Q: 行情接口失败时如何降级**
+系统采用三级降级链保证数据可用性:
+1. **个股/基金**: 实时接口 (新浪/东方财富) → DB 历史最近一条 (`asset_price_history`) → 成本价
+2. **市场指数**: 东方财富 API → 新浪 API → DB 历史最近一条 (`index_quote`) → null (前端显示 "--")
+
+接口成功时数据自动 UPSERT 写入数据库，系统启动时自动拉取并持久化行情数据。
+
+**Q: 哪些功能已暂时弃用，如何恢复**
+以下 4 个功能已**暂时弃用**，前端入口已下线，后端代码保留但不维护：
+
+| 功能 | 工具/接口 | 后端代码位置 | 恢复方式 |
+|---|---|---|---|
+| K 线图生成 | `generate_kline_chart` / `GET /api/analysis/kline` | `KlineChartTool.java` + `KlineFetcher.java` | 在 `AnalysisView.vue` 重新添加 K 线组件和路由 |
+| 个人所得税计算 | `tax_calculator` / `POST /api/tool/tax` | `TaxCalculatorTool.java` | 在 `ToolboxView.vue` 重新添加个税计算器卡片 |
+| 贷款月供计算 | `calculate_loan_interest` | `FinancialTools.java` 中方法 | 在工具箱页面重新添加贷款计算入口 |
+| 信用卡分期计算 | `credit_card_installment` / `POST /api/tool/installment` | `CreditCardInstallmentTool.java` | 在 `ToolboxView.vue` 重新添加分期计算器卡片 |
+
+弃用原因：这些功能与核心智能理财顾问场景关联度较低，且部分功能 (如 K 线) 依赖外部行情 API 稳定性。后续可根据用户反馈决定是否重新启用。
+
+**Q: 前端知识库页面显示空列表**
+`DocumentController` 返回的是**原始 `ResponseEntity`** (直接返回 `List<Map>` / `Map`)，**未经过 `ApiResponse` 包装**。因此 `documents.js` 中所有函数必须使用 `res.data` 而非 `res.data.data` 解包:
+```javascript
+// 正确 — DocumentController 返回原始 ResponseEntity
+export function listDocuments() {
+    return http.get('/documents/list').then(res => res.data)
+}
+
+// 错误 — 会导致 undefined，知识库显示为空
+export function listDocuments() {
+    return http.get('/documents/list').then(res => res.data.data)  // ❌
+}
+```
+其他 Controller (`AuthController`/`PortfolioController`/`GoalController` 等) 返回 `ApiResponse` 包装时才使用 `res.data.data`。区分依据：查看后端 Controller 返回类型是否为 `ResponseEntity<ApiResponse<T>>`。
 
 ---
 

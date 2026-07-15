@@ -17,6 +17,8 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * 投资分析 REST 接口：K 线图生成、组合优化、风险收益散点数据。
@@ -50,21 +52,63 @@ public class AnalysisController {
     }
 
     /**
-     * 生成指定标的 K 线图，返回工具输出（含生成的图片路径）。
+     * 生成指定标的 K 线图，返回结构化 JSON（含图片 URL 与涨跌信息）。
+     * 解析 KlineChartTool 输出的多行文本，提取图片文件名并构造 /charts/<filename> URL。
      */
     @GetMapping("/kline")
-    public ApiResponse<String> kline(@RequestParam String symbol,
-                                     @RequestParam(defaultValue = "daily") String period,
-                                     @RequestParam(defaultValue = "30") Integer days) {
-        return ApiResponse.success(klineChartTool.generateKlineChart(symbol, period, days));
+    public ApiResponse<Map<String, Object>> kline(@RequestParam String symbol,
+                                                  @RequestParam(defaultValue = "daily") String period,
+                                                  @RequestParam(defaultValue = "30") Integer days) {
+        String text = klineChartTool.generateKlineChart(symbol, period, days);
+
+        // 工具返回失败文本（如"获取K线数据失败"或"生成K线图失败"），转为错误响应让前端走 catch 分支
+        if (text == null || text.contains("失败")) {
+            String msg = (text != null ? text.lines().findFirst().orElse("生成K线图失败") : "生成K线图失败");
+            return ApiResponse.error(500, msg);
+        }
+
+        // 提取图片文件名：从"图片路径: C:\...\charts\sh600036_daily_20260715.png"提取最后一段文件名
+        Pattern pathPattern = Pattern.compile("图片路径:\\s*.+[\\\\/](.+\\.png)");
+        Matcher pathMatcher = pathPattern.matcher(text);
+        if (!pathMatcher.find()) {
+            return ApiResponse.error(500, "无法从K线图输出中提取图片路径");
+        }
+        String filename = pathMatcher.group(1);
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("url", "/charts/" + filename);
+        result.put("symbol", symbol);
+        result.put("period", period);
+        result.put("days", days);
+
+        // 区间涨跌: +1.23%
+        Pattern changePattern = Pattern.compile("区间涨跌:\\s*([+-]?[\\d.]+)%");
+        Matcher changeMatcher = changePattern.matcher(text);
+        result.put("changePercent", changeMatcher.find()
+                ? round(Double.parseDouble(changeMatcher.group(1))) : 0.0);
+
+        // 起始收盘: 12.34 元
+        Pattern startPattern = Pattern.compile("起始收盘:\\s*([\\d.]+)\\s*元");
+        Matcher startMatcher = startPattern.matcher(text);
+        result.put("startClose", startMatcher.find()
+                ? round(Double.parseDouble(startMatcher.group(1))) : 0.0);
+
+        // 最新收盘: 12.34 元
+        Pattern latestPattern = Pattern.compile("最新收盘:\\s*([\\d.]+)\\s*元");
+        Matcher latestMatcher = latestPattern.matcher(text);
+        result.put("latestClose", latestMatcher.find()
+                ? round(Double.parseDouble(latestMatcher.group(1))) : 0.0);
+
+        return ApiResponse.success(result);
     }
 
     /**
      * 基于当前用户持仓，调用 Markowitz 模型求解最优配置权重。
      * 仅取 stock/fund 资产，按类型赋予预期收益率/波动率假设，相关系数矩阵对角线为 1、其余为默认值。
+     * 返回结构化 JSON：{weights: {assetName: weight}, expectedReturn, volatility, sharpeRatio}
      */
     @GetMapping("/optimize")
-    public ApiResponse<String> optimize() {
+    public ApiResponse<Map<String, Object>> optimize() {
         Long userId = SecurityUtil.currentUserId();
         List<Asset> assets = portfolioService.list(userId);
         // 仅对有 symbol 的 stock/fund 资产进行优化
@@ -84,6 +128,7 @@ public class AnalysisController {
         StringBuilder names = new StringBuilder();
         StringBuilder returns = new StringBuilder();
         StringBuilder stds = new StringBuilder();
+        List<String> displayNames = new ArrayList<>();
         for (int i = 0; i < n; i++) {
             Asset a = targets.get(i);
             String displayName = (a.getName() != null && !a.getName().isBlank())
@@ -95,6 +140,7 @@ public class AnalysisController {
                 stds.append(",");
             }
             names.append(displayName);
+            displayNames.add(displayName);
             returns.append(format(assume[0]));
             stds.append(format(assume[1]));
         }
@@ -111,7 +157,75 @@ public class AnalysisController {
 
         String result = portfolioOptimizerTool.optimizePortfolio(
                 names.toString(), returns.toString(), stds.toString(), corr.toString());
-        return ApiResponse.success(result);
+
+        // 解析工具返回的文本，构建结构化 JSON
+        Map<String, Object> structuredResult = parseOptimizationResult(result, displayNames);
+        return ApiResponse.success(structuredResult);
+    }
+
+    /**
+     * 解析 PortfolioOptimizerTool 返回的格式化文本，提取结构化数据。
+     * 返回格式：{weights: {assetName: weight}, expectedReturn, volatility, sharpeRatio}
+     */
+    private Map<String, Object> parseOptimizationResult(String text, List<String> assetNames) {
+        Map<String, Object> result = new LinkedHashMap<>();
+        Map<String, Double> weights = new LinkedHashMap<>();
+
+        // 解析各资产最优权重 (格式: "  资产名: X.XX%")
+        // 定位"各资产最优权重:"段落
+        Pattern weightPattern = Pattern.compile("各资产最优权重:\\s*\\n((?:\\s+[^\\n]+\\n)*)");
+        Matcher weightMatcher = weightPattern.matcher(text);
+        if (weightMatcher.find()) {
+            String weightSection = weightMatcher.group(1);
+            Pattern linePattern = Pattern.compile("\\s+([^:]+):\\s+([\\d.]+)%");
+            Matcher lineMatcher = linePattern.matcher(weightSection);
+            while (lineMatcher.find()) {
+                String assetName = lineMatcher.group(1).trim();
+                double weightPct = Double.parseDouble(lineMatcher.group(2));
+                weights.put(assetName, round(weightPct / 100.0, 4));
+            }
+        }
+
+        // 如果解析失败，使用资产名称列表构建空权重
+        if (weights.isEmpty()) {
+            for (String name : assetNames) {
+                weights.put(name, 0.0);
+            }
+        }
+        result.put("weights", weights);
+
+        // 解析最优组合绩效指标
+        // 预期年化收益率 (格式: "预期年化收益率: X.XX%")
+        Pattern returnPattern = Pattern.compile("最优组合绩效指标:[\\s\\S]*?预期年化收益率:\\s+([\\d.]+)%");
+        Matcher returnMatcher = returnPattern.matcher(text);
+        if (returnMatcher.find()) {
+            double returnPct = Double.parseDouble(returnMatcher.group(1));
+            result.put("expectedReturn", round(returnPct / 100.0, 4));
+        } else {
+            result.put("expectedReturn", 0.0);
+        }
+
+        // 预期年化波动率 (格式: "预期年化波动率: X.XX%")
+        Pattern volPattern = Pattern.compile("最优组合绩效指标:[\\s\\S]*?预期年化波动率:\\s+([\\d.]+)%");
+        Matcher volMatcher = volPattern.matcher(text);
+        if (volMatcher.find()) {
+            double volPct = Double.parseDouble(volMatcher.group(1));
+            result.put("volatility", round(volPct / 100.0, 4));
+        } else {
+            result.put("volatility", 0.0);
+        }
+
+        // 夏普比率 (格式: "夏普比率: X.XXXX")
+        Pattern sharpePattern = Pattern.compile("最优组合绩效指标:[\\s\\S]*?夏普比率:\\s+([\\d.]+)");
+        Matcher sharpeMatcher = sharpePattern.matcher(text);
+        if (sharpeMatcher.find()) {
+            double sharpe = Double.parseDouble(sharpeMatcher.group(1));
+            result.put("sharpeRatio", round(sharpe, 4));
+        } else {
+            result.put("sharpeRatio", 0.0);
+        }
+
+        return result;
     }
 
     /**
@@ -128,14 +242,17 @@ public class AnalysisController {
             if (!"stock".equals(type) && !"fund".equals(type)) {
                 continue;
             }
+            List<Map<String, Object>> history = portfolioService.getPriceHistory(a.getId(), 30);
+            double[] metrics = computeAnnualizedMetrics(history);
+            if (metrics == null) {
+                // 历史样本不足 7 条，跳过该资产，不加入散点图
+                continue;
+            }
             Map<String, Object> point = new LinkedHashMap<>();
             String displayName = (a.getName() != null && !a.getName().isBlank())
                     ? a.getName() : a.getSymbol();
             point.put("name", displayName);
             point.put("marketValue", a.getMarketValue());
-
-            List<Map<String, Object>> history = portfolioService.getPriceHistory(a.getId(), 30);
-            double[] metrics = computeAnnualizedMetrics(history);
             point.put("annualReturn", round(metrics[0]));
             point.put("annualVolatility", round(metrics[1]));
             result.add(point);
@@ -146,11 +263,12 @@ public class AnalysisController {
     /**
      * 由历史净值序列计算年化收益率与年化波动率。
      *
-     * @return [0]=年化收益率(日均×252)，[1]=年化波动率(日标准差×√252)
+     * @return [0]=年化收益率(日均×252)，[1]=年化波动率(日标准差×√252)；
+     *         历史样本不足 7 条时返回 null，调用方应跳过该资产。
      */
     private double[] computeAnnualizedMetrics(List<Map<String, Object>> history) {
-        if (history == null || history.size() < 2) {
-            return new double[]{0.0, 0.0};
+        if (history == null || history.size() < 7) {
+            return null;
         }
         List<Double> prices = new ArrayList<>();
         for (Map<String, Object> row : history) {
@@ -159,8 +277,8 @@ public class AnalysisController {
                 prices.add(num.doubleValue());
             }
         }
-        if (prices.size() < 2) {
-            return new double[]{0.0, 0.0};
+        if (prices.size() < 7) {
+            return null;
         }
         // 日收益率序列
         List<Double> dailyReturns = new ArrayList<>(prices.size() - 1);
@@ -196,5 +314,9 @@ public class AnalysisController {
 
     private double round(double v) {
         return BigDecimal.valueOf(v).setScale(4, RoundingMode.HALF_UP).doubleValue();
+    }
+
+    private double round(double v, int scale) {
+        return BigDecimal.valueOf(v).setScale(scale, RoundingMode.HALF_UP).doubleValue();
     }
 }

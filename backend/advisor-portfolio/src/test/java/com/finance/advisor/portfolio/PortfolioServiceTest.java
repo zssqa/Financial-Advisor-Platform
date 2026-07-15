@@ -4,6 +4,7 @@ import com.finance.advisor.tool.finance.FundNavTool;
 import com.finance.advisor.tool.finance.StockQuoteTool;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.math.BigDecimal;
@@ -12,8 +13,11 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.*;
 
 /**
@@ -135,5 +139,204 @@ class PortfolioServiceTest {
                 argThat(b -> b != null && b.compareTo(new BigDecimal("1250.0")) == 0),
                 anyLong());
         verify(stockQuoteTool).queryStockQuote("sh600036");
+    }
+
+    // ===== getLatestPriceFromHistory tests =====
+
+    @Test
+    void getLatestPriceFromHistory_hasHistory_returnsPrice() {
+        when(jdbcTemplate.queryForObject(anyString(), eq(BigDecimal.class), any()))
+                .thenReturn(new BigDecimal("10.50"));
+
+        BigDecimal result = service.getLatestPriceFromHistory(1L);
+
+        assertNotNull(result);
+        assertEquals(0, result.compareTo(new BigDecimal("10.50")));
+    }
+
+    @Test
+    void getLatestPriceFromHistory_noHistory_returnsNull() {
+        when(jdbcTemplate.queryForObject(anyString(), eq(BigDecimal.class), any()))
+                .thenThrow(new EmptyResultDataAccessException(1));
+
+        BigDecimal result = service.getLatestPriceFromHistory(1L);
+
+        assertNull(result);
+    }
+
+    @Test
+    void getLatestPriceFromHistory_nullAssetId_returnsNull() {
+        BigDecimal result = service.getLatestPriceFromHistory(null);
+
+        assertNull(result);
+        verify(jdbcTemplate, never()).queryForObject(anyString(), eq(BigDecimal.class), any());
+    }
+
+    @Test
+    void getLatestPriceFromHistory_queryThrows_returnsNull() {
+        when(jdbcTemplate.queryForObject(anyString(), eq(BigDecimal.class), any()))
+                .thenThrow(new RuntimeException("DB connection error"));
+
+        BigDecimal result = service.getLatestPriceFromHistory(1L);
+
+        assertNull(result);
+    }
+
+    // ===== estimateUnitPrice three-tier fallback tests (via list()) =====
+
+    @Test
+    void list_stockRealTimeSuccess_returnsRealTimePrice() {
+        Asset stock = asset("stock", "sh600036", "100", "10");
+        stock.setId(1L);
+        stock.setUserId(1L);
+        stock.setMarketValue(null);
+        stock.setPriceUpdatedAt(0L);
+        when(assetRepository.findByUserId(1L)).thenReturn(List.of(stock));
+        when(stockQuoteTool.queryStockQuote("sh600036")).thenReturn("最新价:10.50");
+
+        List<Asset> result = service.list(1L);
+
+        assertEquals(1, result.size());
+        // marketValue = 100 * 10.50 = 1050.00
+        assertEquals(0, result.get(0).getMarketValue().compareTo(new BigDecimal("1050.00")));
+        assertEquals(0, result.get(0).getCurrentPrice().compareTo(new BigDecimal("10.50")));
+        // getLatestPriceFromHistory should NOT be called when real-time succeeds
+        verify(jdbcTemplate, never()).queryForObject(anyString(), eq(BigDecimal.class), any());
+    }
+
+    @Test
+    void list_stockRealTimeFails_dbHistoryHasData_returnsHistoryPrice() {
+        Asset stock = asset("stock", "sh600036", "100", "10");
+        stock.setId(1L);
+        stock.setUserId(1L);
+        stock.setMarketValue(null);
+        stock.setPriceUpdatedAt(0L);
+        when(assetRepository.findByUserId(1L)).thenReturn(List.of(stock));
+        when(stockQuoteTool.queryStockQuote("sh600036")).thenReturn(null);
+        when(jdbcTemplate.queryForObject(anyString(), eq(BigDecimal.class), any()))
+                .thenReturn(new BigDecimal("9.00"));
+
+        List<Asset> result = service.list(1L);
+
+        assertEquals(1, result.size());
+        // marketValue = 100 * 9.00 = 900.00
+        assertEquals(0, result.get(0).getMarketValue().compareTo(new BigDecimal("900.00")));
+    }
+
+    @Test
+    void list_stockRealTimeFails_dbHistoryEmpty_degradesToCostPrice() {
+        Asset stock = asset("stock", "sh600036", "100", "10");
+        stock.setId(1L);
+        stock.setUserId(1L);
+        stock.setMarketValue(null);
+        stock.setPriceUpdatedAt(0L);
+        when(assetRepository.findByUserId(1L)).thenReturn(List.of(stock));
+        when(stockQuoteTool.queryStockQuote("sh600036")).thenReturn(null);
+        when(jdbcTemplate.queryForObject(anyString(), eq(BigDecimal.class), any()))
+                .thenThrow(new EmptyResultDataAccessException(1));
+
+        List<Asset> result = service.list(1L);
+
+        assertEquals(1, result.size());
+        // marketValue = 100 * 10 (costPrice) = 1000
+        assertEquals(0, result.get(0).getMarketValue().compareTo(new BigDecimal("1000")));
+    }
+
+    @Test
+    void list_fundRealTimeFails_dbHistoryHasData_returnsHistoryNav() {
+        Asset fund = asset("fund", "001001", "200", "1");
+        fund.setId(2L);
+        fund.setUserId(1L);
+        fund.setMarketValue(null);
+        fund.setPriceUpdatedAt(0L);
+        when(assetRepository.findByUserId(1L)).thenReturn(List.of(fund));
+        when(fundNavTool.queryFundNav("001001")).thenReturn(null);
+        when(jdbcTemplate.queryForObject(anyString(), eq(BigDecimal.class), any()))
+                .thenReturn(new BigDecimal("1.50"));
+
+        List<Asset> result = service.list(1L);
+
+        assertEquals(1, result.size());
+        // marketValue = 200 * 1.50 = 300.00
+        assertEquals(0, result.get(0).getMarketValue().compareTo(new BigDecimal("300.00")));
+    }
+
+    // ===== refreshAllMarketValues degradation tests =====
+
+    @Test
+    void refreshAllMarketValues_interfaceSuccess_updatesWithRealPrice() {
+        Asset stock = asset("stock", "sh600036", "100", "10");
+        stock.setId(1L);
+        stock.setUserId(1L);
+        when(assetRepository.findAllStockFundAssets()).thenReturn(List.of(stock));
+        when(stockQuoteTool.queryStockQuote("sh600036")).thenReturn("最新价: 12.50 元");
+
+        service.refreshAllMarketValues();
+
+        // marketValue = 100 * 12.50 = 1250.0
+        verify(assetRepository).updateMarketData(eq(1L),
+                argThat(b -> b != null && b.compareTo(new BigDecimal("12.50")) == 0),
+                argThat(b -> b != null && b.compareTo(new BigDecimal("1250.0")) == 0),
+                anyLong());
+        // savePriceSnapshot called → jdbcTemplate.update with INSERT SQL
+        verify(jdbcTemplate).update(contains("INSERT INTO asset_price_history"),
+                any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void refreshAllMarketValues_interfaceFails_dbHistoryHasData_updatesWithHistoryPrice() {
+        Asset stock = asset("stock", "sh600036", "100", "10");
+        stock.setId(1L);
+        stock.setUserId(1L);
+        when(assetRepository.findAllStockFundAssets()).thenReturn(List.of(stock));
+        when(stockQuoteTool.queryStockQuote("sh600036")).thenReturn(null);
+        when(jdbcTemplate.queryForObject(anyString(), eq(BigDecimal.class), any()))
+                .thenReturn(new BigDecimal("8.00"));
+
+        service.refreshAllMarketValues();
+
+        // marketValue = 100 * 8.00 = 800
+        verify(assetRepository).updateMarketData(eq(1L),
+                argThat(b -> b != null && b.compareTo(new BigDecimal("8.00")) == 0),
+                argThat(b -> b != null && b.compareTo(new BigDecimal("800")) == 0),
+                anyLong());
+    }
+
+    @Test
+    void refreshAllMarketValues_interfaceFails_dbHistoryEmpty_degradesToCostPrice() {
+        Asset stock = asset("stock", "sh600036", "100", "10");
+        stock.setId(1L);
+        stock.setUserId(1L);
+        when(assetRepository.findAllStockFundAssets()).thenReturn(List.of(stock));
+        when(stockQuoteTool.queryStockQuote("sh600036")).thenReturn(null);
+        when(jdbcTemplate.queryForObject(anyString(), eq(BigDecimal.class), any()))
+                .thenThrow(new EmptyResultDataAccessException(1));
+
+        service.refreshAllMarketValues();
+
+        // marketValue = 100 * 10 (costPrice) = 1000, price = null (degraded)
+        verify(assetRepository).updateMarketData(eq(1L),
+                isNull(),
+                argThat(b -> b != null && b.compareTo(new BigDecimal("1000")) == 0),
+                anyLong());
+    }
+
+    // ===== list snapshot test =====
+
+    @Test
+    void list_staleStockAsset_callsSavePriceSnapshot() {
+        Asset stock = asset("stock", "sh600036", "100", "10");
+        stock.setId(1L);
+        stock.setUserId(1L);
+        stock.setMarketValue(null);
+        stock.setPriceUpdatedAt(0L);
+        when(assetRepository.findByUserId(1L)).thenReturn(List.of(stock));
+        when(stockQuoteTool.queryStockQuote("sh600036")).thenReturn("最新价: 12.50 元");
+
+        service.list(1L);
+
+        // savePriceSnapshot called → jdbcTemplate.update with INSERT SQL
+        verify(jdbcTemplate).update(contains("INSERT INTO asset_price_history"),
+                any(), any(), any(), any(), any(), any());
     }
 }

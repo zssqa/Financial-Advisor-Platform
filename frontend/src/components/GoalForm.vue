@@ -1,90 +1,88 @@
 <template>
-    <n-form
+    <a-form
         ref="formRef"
         :model="form"
         :rules="rules"
-        label-placement="left"
-        label-width="96"
-        require-mark-placement="right-hanging"
+        :label-col="{ span: 6 }"
+        :wrapper-col="{ span: 18 }"
     >
-        <n-form-item label="目标类型" path="type">
-            <n-select
+        <a-form-item label="目标类型" name="type">
+            <a-select
                 v-model:value="form.type"
                 :options="typeOptions"
                 placeholder="请选择目标类型"
             />
-        </n-form-item>
+        </a-form-item>
 
-        <n-form-item label="目标金额" path="targetAmount">
-            <n-input-number
+        <a-form-item label="目标金额" name="targetAmount">
+            <a-input-number
                 v-model:value="form.targetAmount"
                 :min="0"
                 :precision="2"
                 placeholder="目标金额"
                 style="width: 100%"
-                clearable
+                allow-clear
             >
                 <template #prefix>¥</template>
-            </n-input-number>
-        </n-form-item>
+            </a-input-number>
+        </a-form-item>
 
-        <n-form-item label="当前金额" path="currentAmount">
-            <n-input-number
+        <a-form-item label="当前金额" name="currentAmount">
+            <a-input-number
                 v-model:value="form.currentAmount"
                 :min="0"
                 :precision="2"
                 placeholder="已存金额"
                 style="width: 100%"
-                clearable
+                allow-clear
             >
                 <template #prefix>¥</template>
-            </n-input-number>
-        </n-form-item>
+            </a-input-number>
+        </a-form-item>
 
-        <n-form-item label="截止日期" path="deadline">
-            <n-date-picker
-                v-model:value="form.deadline"
-                type="date"
+        <a-form-item label="截止日期" name="deadline">
+            <a-date-picker
+                :value="form.deadline ? dayjs(form.deadline) : null"
+                @change="(val) => form.deadline = val ? val.valueOf() : null"
                 placeholder="选择截止日期"
                 style="width: 100%"
-                clearable
+                allow-clear
             />
-        </n-form-item>
+        </a-form-item>
 
-        <n-form-item label="每月储蓄" path="monthlyContribution">
-            <n-input-number
+        <a-form-item label="每月储蓄" name="monthlyContribution">
+            <a-input-number
                 v-model:value="form.monthlyContribution"
                 :min="0"
                 :precision="2"
                 placeholder="每月计划储蓄额"
                 style="width: 100%"
-                clearable
+                allow-clear
             >
                 <template #prefix>¥</template>
-            </n-input-number>
-        </n-form-item>
+            </a-input-number>
+        </a-form-item>
 
-        <n-form-item label="备注" path="notes">
-            <n-input
+        <a-form-item label="备注" name="notes">
+            <a-textarea
                 v-model:value="form.notes"
-                type="textarea"
-                :autosize="{ minRows: 2, maxRows: 4 }"
+                :auto-size="{ minRows: 2, maxRows: 4 }"
                 placeholder="可选：目标说明 / 名称"
             />
-        </n-form-item>
+        </a-form-item>
 
         <div class="form-actions">
-            <n-button @click="emit('cancel')">取消</n-button>
-            <n-button type="primary" @click="handleSubmit">
+            <a-button @click="emit('cancel')">取消</a-button>
+            <a-button type="primary" @click="handleSubmit">
                 {{ isEdit ? '保存修改' : '创建目标' }}
-            </n-button>
+            </a-button>
         </div>
-    </n-form>
+    </a-form>
 </template>
 
 <script setup>
 import { ref, reactive, computed, watch } from 'vue'
-import { NForm, NFormItem, NSelect, NInputNumber, NDatePicker, NInput, NButton } from 'naive-ui'
+import dayjs from 'dayjs'
 
 const props = defineProps({
     goal: { type: Object, default: null }

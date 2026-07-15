@@ -52,6 +52,9 @@ public class StockQuoteTool {
             double open = Double.parseDouble(parts[1]);
             double close = Double.parseDouble(parts[2]);
             double price = Double.parseDouble(parts[3]);
+            if (price <= 0) {
+                return "未查询到有效行情数据: " + stockCode;
+            }
             double high = Double.parseDouble(parts[4]);
             double low = Double.parseDouble(parts[5]);
             long volume = Long.parseLong(parts[8]);

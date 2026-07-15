@@ -14,282 +14,131 @@
             <div class="content">
                 <div class="header">
                     <h2 class="title">
-                        <n-icon size="22"><BuildOutline /></n-icon>
+                        <ToolOutlined style="font-size: 22px;" />
                         工具箱
                     </h2>
                 </div>
 
-                <n-tabs type="line" animated>
-                    <!-- 个税计算器 -->
-                    <n-tab-pane name="tax" tab="个税计算器">
-                        <div class="tool-card">
-                            <n-form
-                                ref="taxFormRef"
-                                :model="taxForm"
-                                :rules="taxRules"
-                                label-placement="left"
-                                label-width="120"
-                                require-mark-placement="right-hanging"
-                            >
-                                <n-form-item label="年薪收入" path="annualIncome">
-                                    <n-input-number
-                                        v-model:value="taxForm.annualIncome"
-                                        :min="0"
-                                        :precision="2"
-                                        placeholder="请输入年薪收入"
-                                        style="width: 100%"
-                                        clearable
-                                    >
-                                        <template #prefix>¥</template>
-                                    </n-input-number>
-                                </n-form-item>
-
-                                <n-form-item label="社保公积金扣除" path="socialInsurance">
-                                    <n-input-number
-                                        v-model:value="taxForm.socialInsurance"
-                                        :min="0"
-                                        :precision="2"
-                                        placeholder="社保及公积金扣除合计"
-                                        style="width: 100%"
-                                        clearable
-                                    >
-                                        <template #prefix>¥</template>
-                                    </n-input-number>
-                                </n-form-item>
-
-                                <n-form-item label="专项附加扣除" path="specialDeduction">
-                                    <n-input-number
-                                        v-model:value="taxForm.specialDeduction"
-                                        :min="0"
-                                        :precision="2"
-                                        placeholder="专项附加扣除合计"
-                                        style="width: 100%"
-                                        clearable
-                                    >
-                                        <template #prefix>¥</template>
-                                    </n-input-number>
-                                </n-form-item>
-
-                                <div class="form-actions">
-                                    <n-button type="primary" :loading="taxLoading" @click="handleTax">
-                                        计算
-                                    </n-button>
-                                </div>
-                            </n-form>
-
-                            <div v-if="taxResult" class="result-block">
-                                <n-descriptions label-placement="left" bordered :column="1" size="large">
-                                    <n-descriptions-item label="应纳税所得额">
-                                        {{ formatMoney(taxResult.taxableIncome) }}
-                                    </n-descriptions-item>
-                                    <n-descriptions-item label="适用税率">
-                                        {{ formatPercent(taxResult.taxRate) }}
-                                    </n-descriptions-item>
-                                    <n-descriptions-item label="速算扣除数">
-                                        {{ formatMoney(taxResult.quickDeduction) }}
-                                    </n-descriptions-item>
-                                    <n-descriptions-item label="应纳税额">
-                                        {{ formatMoney(taxResult.taxAmount) }}
-                                    </n-descriptions-item>
-                                    <n-descriptions-item label="税后收入">
-                                        <span class="highlight">{{ formatMoney(taxResult.afterTaxIncome) }}</span>
-                                    </n-descriptions-item>
-                                </n-descriptions>
-                            </div>
-                        </div>
-                    </n-tab-pane>
-
+                <a-tabs>
                     <!-- 基金筛选器 -->
-                    <n-tab-pane name="fund" tab="基金筛选器">
+                    <a-tab-pane key="fund" tab="基金筛选器">
                         <div class="tool-card">
-                            <n-form
+                            <a-form
                                 ref="fundFormRef"
                                 :model="fundForm"
                                 :rules="fundRules"
-                                label-placement="left"
-                                label-width="120"
-                                require-mark-placement="right-hanging"
+                                :label-col="{ style: { width: '120px' } }"
                             >
-                                <n-form-item label="基金类型" path="fundType">
-                                    <n-select
+                                <a-form-item label="基金类型" name="fundType">
+                                    <a-select
                                         v-model:value="fundForm.fundType"
                                         :options="fundTypeOptions"
                                         placeholder="请选择基金类型"
-                                        clearable
+                                        allow-clear
                                     />
-                                </n-form-item>
+                                </a-form-item>
 
-                                <n-form-item label="最低收益率" path="minReturn">
-                                    <n-input-number
+                                <a-form-item label="最低收益率" name="minReturn">
+                                    <a-input-number
                                         v-model:value="fundForm.minReturn"
                                         :min="0"
                                         :precision="2"
                                         placeholder="近一年最低收益率"
                                         style="width: 100%"
-                                        clearable
                                     >
-                                        <template #suffix>%</template>
-                                    </n-input-number>
-                                </n-form-item>
+                                        <template #addonAfter>%</template>
+                                    </a-input-number>
+                                </a-form-item>
 
-                                <n-form-item label="最大风险等级" path="maxRiskLevel">
-                                    <n-select
+                                <a-form-item label="最大风险等级" name="maxRiskLevel">
+                                    <a-select
                                         v-model:value="fundForm.maxRiskLevel"
                                         :options="riskLevelOptions"
                                         placeholder="可接受的最大风险等级"
                                     />
-                                </n-form-item>
+                                </a-form-item>
 
                                 <div class="form-actions">
-                                    <n-button type="primary" :loading="fundLoading" @click="handleFund">
+                                    <a-button type="primary" :loading="fundLoading" @click="handleFund">
                                         筛选
-                                    </n-button>
+                                    </a-button>
                                 </div>
-                            </n-form>
+                            </a-form>
 
                             <div v-if="fundLoaded" class="result-block">
-                                <n-data-table
+                                <a-table
                                     :columns="fundColumns"
-                                    :data="fundList"
+                                    :data-source="fundList"
                                     :loading="fundLoading"
                                     :bordered="false"
-                                    :single-line="false"
+                                    :pagination="false"
                                 />
                             </div>
                         </div>
-                    </n-tab-pane>
+                    </a-tab-pane>
 
                     <!-- 汇率换算 -->
-                    <n-tab-pane name="exchange" tab="汇率换算">
+                    <a-tab-pane key="exchange" tab="汇率换算">
                         <div class="tool-card">
-                            <n-form
+                            <a-form
                                 ref="exchangeFormRef"
                                 :model="exchangeForm"
                                 :rules="exchangeRules"
-                                label-placement="left"
-                                label-width="120"
-                                require-mark-placement="right-hanging"
+                                :label-col="{ style: { width: '120px' } }"
                             >
-                                <n-form-item label="源货币" path="from">
-                                    <n-select
+                                <a-form-item label="源货币" name="from">
+                                    <a-select
                                         v-model:value="exchangeForm.from"
                                         :options="currencyOptions"
                                         placeholder="请选择源货币"
                                     />
-                                </n-form-item>
+                                </a-form-item>
 
-                                <n-form-item label="目标货币" path="to">
-                                    <n-select
+                                <a-form-item label="目标货币" name="to">
+                                    <a-select
                                         v-model:value="exchangeForm.to"
                                         :options="targetCurrencyOptions"
                                         placeholder="请选择目标货币"
                                     />
-                                </n-form-item>
+                                </a-form-item>
 
-                                <n-form-item label="金额" path="amount">
-                                    <n-input-number
+                                <a-form-item label="金额" name="amount">
+                                    <a-input-number
                                         v-model:value="exchangeForm.amount"
                                         :min="0"
                                         :precision="2"
                                         placeholder="请输入换算金额"
                                         style="width: 100%"
-                                        clearable
                                     >
                                         <template #prefix>{{ exchangeForm.from }}</template>
-                                    </n-input-number>
-                                </n-form-item>
+                                    </a-input-number>
+                                </a-form-item>
 
                                 <div class="form-actions">
-                                    <n-button type="primary" :loading="exchangeLoading" @click="handleExchange">
+                                    <a-button type="primary" :loading="exchangeLoading" @click="handleExchange">
                                         换算
-                                    </n-button>
+                                    </a-button>
                                 </div>
-                            </n-form>
+                            </a-form>
 
                             <div v-if="exchangeResult" class="result-block exchange-result">
-                                <n-statistic label="换算结果" tabular-nums>
+                                <a-statistic
+                                    title="换算结果"
+                                    :value="exchangeAmount"
+                                    :formatter="() => formatMoney(exchangeAmount)"
+                                    :value-style="{ fontVariantNumeric: 'tabular-nums' }"
+                                >
                                     <template #prefix>
                                         <span class="currency-tag">{{ exchangeForm.to }}</span>
                                     </template>
-                                    <template #default>
-                                        {{ formatMoney(exchangeAmount) }}
-                                    </template>
-                                </n-statistic>
+                                </a-statistic>
                                 <div v-if="exchangeRateValue != null" class="rate-hint">
                                     参考汇率：1 {{ exchangeForm.from }} ≈ {{ exchangeRateValue }} {{ exchangeForm.to }}
                                 </div>
                             </div>
                         </div>
-                    </n-tab-pane>
-
-                    <!-- 信用卡分期计算器 -->
-                    <n-tab-pane name="installment" tab="信用卡分期计算器">
-                        <div class="tool-card">
-                            <n-form
-                                ref="installmentFormRef"
-                                :model="installmentForm"
-                                :rules="installmentRules"
-                                label-placement="left"
-                                label-width="120"
-                                require-mark-placement="right-hanging"
-                            >
-                                <n-form-item label="分期总额" path="totalAmount">
-                                    <n-input-number
-                                        v-model:value="installmentForm.totalAmount"
-                                        :min="0"
-                                        :precision="2"
-                                        placeholder="请输入分期总额"
-                                        style="width: 100%"
-                                        clearable
-                                    >
-                                        <template #prefix>¥</template>
-                                    </n-input-number>
-                                </n-form-item>
-
-                                <n-form-item label="分期期数" path="periods">
-                                    <n-select
-                                        v-model:value="installmentForm.periods"
-                                        :options="periodOptions"
-                                        placeholder="请选择分期期数"
-                                    />
-                                </n-form-item>
-
-                                <n-form-item label="年化费率" path="annualRate">
-                                    <n-input-number
-                                        v-model:value="installmentForm.annualRate"
-                                        :min="0"
-                                        :precision="4"
-                                        placeholder="请输入年化费率"
-                                        style="width: 100%"
-                                        clearable
-                                    >
-                                        <template #suffix>%</template>
-                                    </n-input-number>
-                                </n-form-item>
-
-                                <div class="form-actions">
-                                    <n-button type="primary" :loading="installmentLoading" @click="handleInstallment">
-                                        计算
-                                    </n-button>
-                                </div>
-                            </n-form>
-
-                            <div v-if="installmentResult" class="result-block stat-grid">
-                                <n-statistic label="每期还款额" tabular-nums>
-                                    <template #default>{{ formatMoney(installmentResult.periodPayment) }}</template>
-                                </n-statistic>
-                                <n-statistic label="总利息" tabular-nums>
-                                    <template #default>{{ formatMoney(installmentResult.totalInterest) }}</template>
-                                </n-statistic>
-                                <n-statistic label="总还款额" tabular-nums>
-                                    <template #default>
-                                        <span class="highlight">{{ formatMoney(installmentResult.totalRepayment) }}</span>
-                                    </template>
-                                </n-statistic>
-                            </div>
-                        </div>
-                    </n-tab-pane>
-                </n-tabs>
+                    </a-tab-pane>
+                </a-tabs>
             </div>
         </div>
     </AppLayout>
@@ -298,21 +147,18 @@
 <script setup>
 import { ref, reactive, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import {
-    NIcon, NTabs, NTabPane, NForm, NFormItem, NInputNumber, NSelect,
-    NButton, NStatistic, NDataTable, NDescriptions, NDescriptionsItem, useMessage
-} from 'naive-ui'
-import { BuildOutline } from '@vicons/ionicons5'
+import { App } from 'ant-design-vue'
+import { ToolOutlined } from '@ant-design/icons-vue'
 import AppLayout from '../components/AppLayout.vue'
 import SessionSidebar from '../components/SessionSidebar.vue'
 import { sessionsStore } from '../stores/sessions.js'
 import {
-    calculateTax, screenFunds, exchangeRate, calculateInstallment
+    screenFunds, exchangeRate
 } from '../api/tool.js'
 
 const { state } = sessionsStore
 const router = useRouter()
-const message = useMessage()
+const { message } = App.useApp()
 
 /* ============== 通用工具函数 ============== */
 
@@ -349,26 +195,14 @@ function extractList(res) {
     return []
 }
 
-/* ============== 个税计算器 ============== */
-
-const taxFormRef = ref(null)
-const taxLoading = ref(false)
-const taxResult = ref(null)
-
-const taxForm = reactive({
-    annualIncome: null,
-    socialInsurance: null,
-    specialDeduction: null
-})
-
 // 正数校验规则（金额必须为正数）
 function positiveRule(label) {
     return {
         type: 'number',
         required: true,
         validator: (rule, value) => {
-            if (value == null) return new Error(`请输入${label}`)
-            if (Number(value) <= 0) return new Error(`${label}必须为正数`)
+            if (value == null) throw new Error(`请输入${label}`)
+            if (Number(value) <= 0) throw new Error(`${label}必须为正数`)
             return true
         },
         trigger: ['blur', 'change']
@@ -382,38 +216,10 @@ function nonNegativeRule(label) {
         required: false,
         validator: (rule, value) => {
             if (value == null) return true
-            if (Number(value) < 0) return new Error(`${label}不能为负数`)
+            if (Number(value) < 0) throw new Error(`${label}不能为负数`)
             return true
         },
         trigger: ['blur', 'change']
-    }
-}
-
-const taxRules = {
-    annualIncome: positiveRule('年薪收入'),
-    socialInsurance: nonNegativeRule('社保公积金扣除'),
-    specialDeduction: nonNegativeRule('专项附加扣除')
-}
-
-async function handleTax() {
-    try {
-        await taxFormRef.value?.validate()
-    } catch {
-        return
-    }
-    taxLoading.value = true
-    try {
-        const res = await calculateTax({
-            annualIncome: taxForm.annualIncome,
-            socialInsurance: Number(taxForm.socialInsurance) || 0,
-            specialDeduction: Number(taxForm.specialDeduction) || 0
-        })
-        taxResult.value = unwrap(res) || {}
-        message.success('计算完成')
-    } catch (e) {
-        message.error('计算失败：' + (e?.response?.data?.message || e?.message || '未知错误'))
-    } finally {
-        taxLoading.value = false
     }
 }
 
@@ -431,8 +237,8 @@ const fundForm = reactive({
 })
 
 const fundTypeOptions = [
-    { label: '股票型', value: 'stock' },
-    { label: '混合型', value: 'mixed' },
+    { label: '股票型', value: 'equity' },
+    { label: '混合型', value: 'hybrid' },
     { label: '债券型', value: 'bond' },
     { label: '指数型', value: 'index' }
 ]
@@ -446,7 +252,7 @@ const riskLevelOptions = [
 ]
 
 const fundRules = {
-    maxReturn: nonNegativeRule('最低收益率'),
+    minReturn: nonNegativeRule('最低收益率'),
     maxRiskLevel: {
         type: 'number',
         required: true,
@@ -457,23 +263,23 @@ const fundRules = {
 
 // 基金类型中文映射
 const FUND_TYPE_LABELS = {
-    stock: '股票型', mixed: '混合型', bond: '债券型', index: '指数型'
+    equity: '股票型', hybrid: '混合型', bond: '债券型', index: '指数型'
 }
 
 const fundColumns = [
-    { title: '基金名称', key: 'name', render: (row) => row.name || row.fundName || '-' },
-    { title: '基金代码', key: 'code', render: (row) => row.code || row.fundCode || '-' },
+    { title: '基金名称', dataIndex: 'name', key: 'name', customRender: ({ record }) => record.name || record.fundName || '-' },
+    { title: '基金代码', dataIndex: 'code', key: 'code', customRender: ({ record }) => record.code || record.fundCode || '-' },
     {
-        title: '类型', key: 'type',
-        render: (row) => FUND_TYPE_LABELS[row.type] || row.typeName || row.type || '-'
+        title: '类型', dataIndex: 'type', key: 'type',
+        customRender: ({ record }) => record.type || FUND_TYPE_LABELS[record.typeCode] || record.typeName || '-'
     },
     {
-        title: '近一年收益', key: 'returnRate',
-        render: (row) => formatPercent(row.returnRate ?? row.yearlyReturn)
+        title: '近一年收益', dataIndex: 'returnRate', key: 'returnRate',
+        customRender: ({ record }) => formatPercent(record.returnRate ?? record.yearlyReturn)
     },
     {
-        title: '风险等级', key: 'riskLevel',
-        render: (row) => `${row.riskLevel ?? '-'} 级`
+        title: '风险等级', dataIndex: 'riskLevel', key: 'riskLevel',
+        customRender: ({ record }) => record.riskLevel || '-'
     }
 ]
 
@@ -487,8 +293,8 @@ async function handleFund() {
     try {
         const res = await screenFunds({
             fundType: fundForm.fundType,
-            minReturn: Number(fundForm.minReturn) || 0,
-            maxRiskLevel: fundForm.maxRiskLevel
+            minReturn: Number(fundForm.minReturn) || null,
+            maxRisk: fundForm.maxRiskLevel
         })
         fundList.value = extractList(res)
         fundLoaded.value = true
@@ -562,53 +368,6 @@ async function handleExchange() {
     }
 }
 
-/* ============== 信用卡分期计算器 ============== */
-
-const installmentFormRef = ref(null)
-const installmentLoading = ref(false)
-const installmentResult = ref(null)
-
-const installmentForm = reactive({
-    totalAmount: null,
-    periods: null,
-    annualRate: null
-})
-
-const periodOptions = [
-    { label: '3 期', value: 3 },
-    { label: '6 期', value: 6 },
-    { label: '12 期', value: 12 },
-    { label: '24 期', value: 24 }
-]
-
-const installmentRules = {
-    totalAmount: positiveRule('分期总额'),
-    periods: { type: 'number', required: true, message: '请选择分期期数', trigger: ['change', 'blur'] },
-    annualRate: positiveRule('年化费率')
-}
-
-async function handleInstallment() {
-    try {
-        await installmentFormRef.value?.validate()
-    } catch {
-        return
-    }
-    installmentLoading.value = true
-    try {
-        const res = await calculateInstallment({
-            totalAmount: installmentForm.totalAmount,
-            periods: installmentForm.periods,
-            annualRate: installmentForm.annualRate
-        })
-        installmentResult.value = unwrap(res) || {}
-        message.success('计算完成')
-    } catch (e) {
-        message.error('计算失败：' + (e?.response?.data?.message || e?.message || '未知错误'))
-    } finally {
-        installmentLoading.value = false
-    }
-}
-
 function goChat() {
     router.push('/chat')
 }
@@ -672,17 +431,17 @@ function goChat() {
 }
 
 /* 字体规范：正文 16px+，输入框 18px+ */
-:deep(.n-form-item-label__text) { font-size: 16px; }
-:deep(.n-input__input-el),
-:deep(.n-input-number-input) { font-size: 18px; }
-:deep(.n-base-selection-input__el),
-:deep(.n-base-selection-label__content) { font-size: 18px; }
-:deep(.n-descriptions-table-content) { font-size: 16px; }
-:deep(.n-statistic-value__content) { font-size: 22px; }
-:deep(.n-statistic .n-statistic__label) { font-size: 16px; }
-:deep(.n-data-table-th__title) { font-size: 16px; }
-:deep(.n-data-table-td) { font-size: 16px; }
-:deep(.n-tabs-tab__label) { font-size: 16px; }
+:deep(.ant-form-item-label > label) { font-size: 16px; }
+:deep(.ant-input),
+:deep(.ant-input-number-input) { font-size: 18px; }
+:deep(.ant-select-selection-item),
+:deep(.ant-select-selection-placeholder) { font-size: 18px; }
+:deep(.ant-descriptions-item-content) { font-size: 16px; }
+:deep(.ant-statistic-content-value) { font-size: 22px; }
+:deep(.ant-statistic .ant-statistic-title) { font-size: 16px; }
+:deep(.ant-table-thead .ant-table-cell) { font-size: 16px; }
+:deep(.ant-table-tbody .ant-table-cell) { font-size: 16px; }
+:deep(.ant-tabs-tab-btn) { font-size: 16px; }
 
 @media (max-width: 768px) {
     .content { padding: 16px; }

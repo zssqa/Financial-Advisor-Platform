@@ -13,22 +13,22 @@
         <div class="dashboard-view">
             <div class="content">
                 <h2 class="title">
-                    <n-icon size="22"><GridOutline /></n-icon>
+                    <AppstoreOutlined :style="{ fontSize: '22px' }" />
                     个人看板
                     <!-- 价格预警红点入口：未读数 > 0 时显示红色徽章，点击跳转资产管理页 -->
-                    <n-badge
+                    <a-badge
                         v-if="unreadAlerts > 0"
-                        :value="unreadAlerts"
-                        :max="99"
+                        :count="unreadAlerts"
+                        :overflowCount="99"
                         class="alert-badge"
                     >
-                        <n-button quaternary size="small" @click="goPortfolio">
+                        <a-button type="text" size="small" @click="goPortfolio">
                             <template #icon>
-                                <n-icon color="#ff4d4f"><NotificationsOutline /></n-icon>
+                                <BellOutlined :style="{ color: '#ff4d4f' }" />
                             </template>
                             预警
-                        </n-button>
-                    </n-badge>
+                        </a-button>
+                    </a-badge>
                 </h2>
 
                 <!-- 净资产概览 -->
@@ -61,12 +61,12 @@
                     <div class="card-header">
                         <span>近 30 天市值趋势</span>
                     </div>
-                    <n-spin :show="loadingHistory">
+                    <a-spin :spinning="loadingHistory">
                         <div v-if="hasHistory" class="trend-wrap">
                             <Line :data="historyChartData" :options="historyChartOptions" />
                         </div>
-                        <n-empty v-else description="暂无历史数据" size="small" />
-                    </n-spin>
+                        <a-empty v-else description="暂无历史数据" />
+                    </a-spin>
                 </div>
 
                 <div class="grid">
@@ -74,38 +74,36 @@
                     <div class="card">
                         <div class="card-header">
                             <span>资产配置</span>
-                            <n-button text type="primary" size="small" @click="goPortfolio">管理资产</n-button>
+                            <a-button type="link" size="small" @click="goPortfolio">管理资产</a-button>
                         </div>
-                        <n-spin :show="loadingPortfolio">
+                        <a-spin :spinning="loadingPortfolio">
                             <div v-if="hasAssets" class="chart-wrap">
                                 <Pie :data="chartData" :options="chartOptions" />
                             </div>
-                            <n-empty v-else description="暂无资产，去添加" size="small">
-                                <template #extra>
-                                    <n-button size="small" type="primary" @click="goPortfolio">前往添加</n-button>
-                                </template>
-                            </n-empty>
-                        </n-spin>
+                            <a-empty v-else description="暂无资产，去添加">
+                                <a-button size="small" type="primary" @click="goPortfolio">前往添加</a-button>
+                            </a-empty>
+                        </a-spin>
                     </div>
 
                     <!-- 理财目标进度 -->
                     <div class="card">
                         <div class="card-header">
                             <span>理财目标进度</span>
-                            <n-button text type="primary" size="small" @click="goGoal">管理目标</n-button>
+                            <a-button type="link" size="small" @click="goGoal">管理目标</a-button>
                         </div>
-                        <n-spin :show="loadingGoal">
+                        <a-spin :spinning="loadingGoal">
                             <div v-if="hasGoals" class="goal-list">
                                 <div v-for="(g, idx) in goalSummary.goals" :key="idx" class="goal-row">
                                     <div class="goal-info">
                                         <span class="goal-type">{{ goalTypeLabel(g) }}</span>
                                         <span class="goal-amount">目标 {{ formatMoney(g.goal?.targetAmount) }}</span>
                                     </div>
-                                    <n-progress
+                                    <a-progress
                                         type="line"
-                                        :percentage="g.progressPercent || 0"
+                                        :percent="g.progressPercent || 0"
                                         :status="goalStatus(g.progressPercent)"
-                                        :show-indicator="true"
+                                        :showInfo="true"
                                     />
                                     <div class="goal-meta">
                                         <span>剩余 {{ formatMoney(g.remainingAmount) }}</span>
@@ -113,19 +111,17 @@
                                     </div>
                                 </div>
                             </div>
-                            <n-empty v-else description="暂无理财目标，去设置" size="small">
-                                <template #extra>
-                                    <n-button size="small" type="primary" @click="goGoal">前往设置</n-button>
-                                </template>
-                            </n-empty>
-                        </n-spin>
+                            <a-empty v-else description="暂无理财目标，去设置">
+                                <a-button size="small" type="primary" @click="goGoal">前往设置</a-button>
+                            </a-empty>
+                        </a-spin>
                     </div>
 
                     <!-- 最近 AI 建议 / 会话 -->
                     <div class="card full">
                         <div class="card-header">
                             <span>最近会话</span>
-                            <n-button text type="primary" size="small" @click="goChat">查看全部</n-button>
+                            <a-button type="link" size="small" @click="goChat">查看全部</a-button>
                         </div>
                         <div v-if="recentSessions.length > 0">
                             <div
@@ -134,7 +130,7 @@
                                 class="session-row"
                                 @click="openSession(session.id)"
                             >
-                                <n-icon size="14" color="#6e6f80"><ChatbubbleEllipsesOutline /></n-icon>
+                                <MessageOutlined :style="{ fontSize: '14px', color: '#6e6f80' }" />
                                 <div class="session-info">
                                     <div class="session-title">{{ session.title || '新会话' }}</div>
                                     <div class="session-meta">
@@ -143,23 +139,21 @@
                                 </div>
                             </div>
                         </div>
-                        <n-empty v-else description="还没有对话，开始第一次交流吧" size="small">
-                            <template #extra>
-                                <n-button size="small" type="primary" @click="goChat">开始对话</n-button>
-                            </template>
-                        </n-empty>
+                        <a-empty v-else description="还没有对话，开始第一次交流吧">
+                            <a-button size="small" type="primary" @click="goChat">开始对话</a-button>
+                        </a-empty>
                     </div>
                 </div>
 
                 <!-- AI 资产配置建议 -->
-                <n-card class="optimize-card" size="small">
-                    <template #header>
+                <a-card class="optimize-card" size="small">
+                    <template #title>
                         <span class="optimize-title">AI 资产配置建议</span>
                     </template>
-                    <template #header-extra>
-                        <n-tag size="small" type="info" round>智能优化</n-tag>
+                    <template #extra>
+                        <a-tag color="blue">智能优化</a-tag>
                     </template>
-                    <n-spin :show="loadingOptimize">
+                    <a-spin :spinning="loadingOptimize">
                         <div v-if="optimize" class="optimize-content">
                             <div class="optimize-weights">
                                 <div
@@ -168,10 +162,10 @@
                                     class="weight-row"
                                 >
                                     <div class="weight-label">{{ TYPE_LABEL_MAP[item.type] || item.type }}</div>
-                                    <n-progress
+                                    <a-progress
                                         type="line"
-                                        :percentage="item.percent"
-                                        :show-indicator="true"
+                                        :percent="item.percent"
+                                        :showInfo="true"
                                     />
                                 </div>
                             </div>
@@ -190,9 +184,9 @@
                                 </div>
                             </div>
                         </div>
-                        <n-empty v-else description="暂无优化建议" size="small" />
-                    </n-spin>
-                </n-card>
+                        <a-empty v-else description="暂无优化建议" />
+                    </a-spin>
+                </a-card>
             </div>
         </div>
     </AppLayout>
@@ -201,10 +195,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import {
-    NIcon, NButton, NProgress, NEmpty, NSpin, NBadge, NTag, NCard
-} from 'naive-ui'
-import { GridOutline, ChatbubbleEllipsesOutline, NotificationsOutline } from '@vicons/ionicons5'
+import { AppstoreOutlined, MessageOutlined, BellOutlined } from '@ant-design/icons-vue'
 import { Pie, Line } from 'vue-chartjs'
 import {
     Chart as ChartJS, ArcElement, Tooltip, Legend,
@@ -516,11 +507,22 @@ async function loadHistory() {
 }
 
 // 加载 AI 资产配置优化建议
+// 后端返回结构化 JSON: { weights: {...}, expectedReturn, volatility, sharpeRatio }
 async function loadOptimize() {
     loadingOptimize.value = true
     try {
         const data = await getOptimize()
-        optimize.value = data || null
+        // 确保 data 是有效对象且包含 weights 字段
+        if (data && typeof data === 'object' && data.weights) {
+            optimize.value = {
+                weights: data.weights,
+                expectedReturn: Number(data.expectedReturn || 0),
+                volatility: Number(data.volatility || 0),
+                sharpeRatio: Number(data.sharpeRatio || 0)
+            }
+        } else {
+            optimize.value = null
+        }
     } catch {
         optimize.value = null
     } finally {

@@ -51,8 +51,8 @@
                         <MarkdownContent v-else :content="msg.content" />
 
                         <div v-if="msg.showConfirmation" class="confirm-row">
-                            <n-button size="small" type="primary" @click="$emit('confirm', true)">确认执行</n-button>
-                            <n-button size="small" @click="$emit('confirm', false)">取消</n-button>
+                            <a-button size="small" type="primary" @click="$emit('confirm', true)">确认执行</a-button>
+                            <a-button size="small" @click="$emit('confirm', false)">取消</a-button>
                         </div>
                     </div>
                 </div>
@@ -63,7 +63,6 @@
 
 <script setup>
 import { ref, watch, nextTick } from 'vue'
-import { NButton } from 'naive-ui'
 import MarkdownContent from './MarkdownContent.vue'
 
 const props = defineProps({

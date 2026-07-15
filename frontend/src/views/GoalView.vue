@@ -14,23 +14,24 @@
             <div class="content">
                 <div class="header">
                     <h2 class="title">
-                        <n-icon size="22"><TrophyOutline /></n-icon>
+                        <TrophyOutlined :style="{ fontSize: '22px' }" />
                         理财目标
                     </h2>
-                    <n-button type="primary" @click="openCreate">
-                        <template #icon><n-icon><AddOutline /></n-icon></template>
+                    <a-button type="primary" @click="openCreate">
+                        <template #icon><PlusOutlined /></template>
                         新建目标
-                    </n-button>
+                    </a-button>
                 </div>
 
-                <n-spin :show="loading">
+                <a-spin :spinning="loading">
                     <div v-if="goals.length" class="goal-grid">
                         <div v-for="goal in goals" :key="goal.id" class="goal-card">
                             <div class="card-head">
                                 <div class="head-left">
-                                    <n-icon size="24" :color="typeColor(goal.type)">
-                                        <component :is="typeIcons[goal.type] || TrophyOutline" />
-                                    </n-icon>
+                                    <component
+                                        :is="typeIcons[goal.type] || TrophyOutlined"
+                                        :style="{ fontSize: '24px', color: typeColor(goal.type) }"
+                                    />
                                     <div class="head-titles">
                                         <div class="goal-type">{{ typeLabels[goal.type] || '自定义' }}</div>
                                         <div v-if="goal.notes" class="goal-name" :title="goal.notes">
@@ -39,29 +40,25 @@
                                     </div>
                                 </div>
                                 <div class="head-actions">
-                                    <n-button text size="small" @click="openEdit(goal)">
-                                        <template #icon><n-icon><CreateOutline /></n-icon></template>
+                                    <a-button type="text" size="small" @click="openEdit(goal)">
+                                        <template #icon><EditOutlined /></template>
                                         编辑
-                                    </n-button>
-                                    <n-popconfirm @positive-click="handleDelete(goal)">
-                                        <template #trigger>
-                                            <n-button text size="small" type="error">
-                                                <template #icon><n-icon><TrashOutline /></n-icon></template>
-                                                删除
-                                            </n-button>
-                                        </template>
-                                        确认删除该目标？此操作不可恢复。
-                                    </n-popconfirm>
+                                    </a-button>
+                                    <a-popconfirm title="确认删除该目标？此操作不可恢复。" @confirm="handleDelete(goal)">
+                                        <a-button type="text" danger size="small">
+                                            <template #icon><DeleteOutlined /></template>
+                                            删除
+                                        </a-button>
+                                    </a-popconfirm>
                                 </div>
                             </div>
 
                             <div class="progress-wrap">
-                                <n-progress
+                                <a-progress
                                     type="line"
-                                    :percentage="clampPct(summaryOf(goal).progressPercent)"
+                                    :percent="clampPct(summaryOf(goal).progressPercent)"
                                     :status="progressStatus(summaryOf(goal).progressPercent)"
-                                    :height="10"
-                                    :border-radius="6"
+                                    :strokeWidth="10"
                                 />
                             </div>
 
@@ -78,69 +75,63 @@
 
                             <div class="meta-row">
                                 <div class="meta-item">
-                                    <n-icon size="14" color="#6e6f80"><TimeOutline /></n-icon>
+                                    <ClockCircleOutlined :style="{ fontSize: '14px', color: '#6e6f80' }" />
                                     <span>剩余 {{ summaryOf(goal).monthsRemaining ?? '-' }} 个月</span>
                                 </div>
                                 <div class="meta-item">
-                                    <n-icon size="14" color="#6e6f80"><CashOutline /></n-icon>
+                                    <DollarOutlined :style="{ fontSize: '14px', color: '#6e6f80' }" />
                                     <span>每月还需 {{ formatMoney(summaryOf(goal).monthlyNeeded) }}</span>
                                 </div>
                             </div>
 
                             <div class="deadline-row">
-                                <n-icon size="14" color="#6e6f80"><CalendarOutline /></n-icon>
+                                <CalendarOutlined :style="{ fontSize: '14px', color: '#6e6f80' }" />
                                 <span>截止日期：{{ formatDate(goal.deadline) }}</span>
                             </div>
                         </div>
                     </div>
 
                     <div v-else-if="!loading" class="empty-state">
-                        <n-empty description="还没有理财目标，开始规划你的第一个目标吧">
-                            <template #extra>
-                                <n-button type="primary" @click="openCreate">
-                                    <template #icon><n-icon><AddOutline /></n-icon></template>
-                                    新建目标
-                                </n-button>
-                            </template>
-                        </n-empty>
+                        <a-empty description="还没有理财目标，开始规划你的第一个目标吧">
+                            <a-button type="primary" @click="openCreate">
+                                <template #icon><PlusOutlined /></template>
+                                新建目标
+                            </a-button>
+                        </a-empty>
                     </div>
 
                     <div v-else class="grid-placeholder"></div>
-                </n-spin>
+                </a-spin>
             </div>
         </div>
 
-        <n-modal
-            v-model:show="showForm"
-            preset="card"
+        <a-modal
+            v-model:open="showForm"
             :title="editingGoal ? '编辑目标' : '新建目标'"
             style="width: 480px; max-width: 90vw"
-            :mask-closable="false"
-            :bordered="false"
+            :maskClosable="false"
         >
-            <n-spin :show="submitting">
+            <a-spin :spinning="submitting">
                 <GoalForm
                     :key="formKey"
                     :goal="editingGoal"
                     @submit="handleSubmit"
                     @cancel="closeForm"
                 />
-            </n-spin>
-        </n-modal>
+            </a-spin>
+        </a-modal>
     </AppLayout>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { App } from 'ant-design-vue'
 import {
-    NIcon, NButton, NProgress, NModal, NPopconfirm, NSpin, NEmpty, useMessage
-} from 'naive-ui'
-import {
-    TrophyOutline, AddOutline, CreateOutline, TrashOutline,
-    RocketOutline, SchoolOutline, HomeOutline, ShieldCheckmarkOutline,
-    CalendarOutline, TimeOutline, CashOutline
-} from '@vicons/ionicons5'
+    TrophyOutlined, PlusOutlined, EditOutlined, DeleteOutlined,
+    RocketOutlined, ReadOutlined, HomeOutlined, SafetyOutlined,
+    CalendarOutlined, ClockCircleOutlined, DollarOutlined
+} from '@ant-design/icons-vue'
 import AppLayout from '../components/AppLayout.vue'
 import SessionSidebar from '../components/SessionSidebar.vue'
 import GoalForm from '../components/GoalForm.vue'
@@ -149,7 +140,7 @@ import { listGoals, createGoal, updateGoal, deleteGoal, getSummary } from '../ap
 
 const { state } = sessionsStore
 const router = useRouter()
-const message = useMessage()
+const { message } = App.useApp()
 
 const loading = ref(false)
 const submitting = ref(false)
@@ -169,11 +160,11 @@ const typeLabels = {
 }
 
 const typeIcons = {
-    retirement: RocketOutline,
-    education: SchoolOutline,
-    house: HomeOutline,
-    emergency_fund: ShieldCheckmarkOutline,
-    custom: CreateOutline
+    retirement: RocketOutlined,
+    education: ReadOutlined,
+    house: HomeOutlined,
+    emergency_fund: SafetyOutlined,
+    custom: EditOutlined
 }
 
 const typeColors = {

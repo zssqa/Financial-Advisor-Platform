@@ -14,22 +14,22 @@
             <div class="content">
                 <div class="header-row">
                     <h2 class="title">
-                        <n-icon size="22"><WalletOutline /></n-icon>
+                        <WalletOutlined style="font-size: 22px;" />
                         我的资产
                     </h2>
                     <div class="header-actions">
-                        <n-button @click="handleDownloadTemplate" :loading="downloadingTemplate">
-                            <template #icon><n-icon><DownloadOutline /></n-icon></template>
+                        <a-button @click="handleDownloadTemplate" :loading="downloadingTemplate">
+                            <template #icon><DownloadOutlined /></template>
                             下载模板
-                        </n-button>
-                        <n-button @click="triggerImport" :loading="importing">
-                            <template #icon><n-icon><CloudUploadOutline /></n-icon></template>
+                        </a-button>
+                        <a-button @click="triggerImport" :loading="importing">
+                            <template #icon><CloudUploadOutlined /></template>
                             导入资产
-                        </n-button>
-                        <n-button type="primary" @click="openCreate">
-                            <template #icon><n-icon><AddOutline /></n-icon></template>
+                        </a-button>
+                        <a-button type="primary" @click="openCreate">
+                            <template #icon><PlusOutlined /></template>
                             添加资产
-                        </n-button>
+                        </a-button>
                         <input ref="importFileInputRef" type="file" style="display:none"
                                accept=".xlsx,.xls,.csv"
                                @change="handleImportFile" />
@@ -70,26 +70,25 @@
                 <div class="card">
                     <div class="card-title">资产明细</div>
                     <div v-if="!loading && assets.length === 0" class="empty-state">
-                        <n-icon size="40" color="#d9d9e3"><WalletOutline /></n-icon>
+                        <WalletOutlined style="font-size: 40px; color: #d9d9e3;" />
                         <p>还没有资产记录，点击「添加资产」开始管理你的投资组合</p>
-                        <n-button type="primary" @click="openCreate">添加资产</n-button>
+                        <a-button type="primary" @click="openCreate">添加资产</a-button>
                     </div>
-                    <n-data-table
+                    <a-table
                         v-else
                         :columns="columns"
-                        :data="tableData"
+                        :data-source="tableData"
                         :loading="loading"
                         :bordered="false"
-                        :single-line="false"
+                        :pagination="false"
                     />
                 </div>
             </div>
         </div>
 
         <!-- 添加/编辑弹窗 -->
-        <n-modal
-            v-model:show="showModal"
-            preset="card"
+        <a-modal
+            v-model:open="showModal"
             :title="editingAsset ? '编辑资产' : '添加资产'"
             style="width: 520px; max-width: 90vw;"
             :mask-closable="false"
@@ -99,17 +98,18 @@
                 @submit="handleSubmit"
                 @cancel="showModal = false"
             />
-        </n-modal>
+        </a-modal>
     </AppLayout>
 </template>
 
 <script setup>
 import { ref, computed, h, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { App, Tag, Button, Popconfirm } from 'ant-design-vue'
 import {
-    NIcon, NButton, NDataTable, NModal, NPopconfirm, NTag, useMessage
-} from 'naive-ui'
-import { WalletOutline, AddOutline, CreateOutline, TrashOutline, DownloadOutline, CloudUploadOutline } from '@vicons/ionicons5'
+    WalletOutlined, PlusOutlined, EditOutlined, DeleteOutlined,
+    DownloadOutlined, CloudUploadOutlined
+} from '@ant-design/icons-vue'
 import AppLayout from '../components/AppLayout.vue'
 import SessionSidebar from '../components/SessionSidebar.vue'
 import AssetForm from '../components/AssetForm.vue'
@@ -121,7 +121,7 @@ import {
 
 const { state } = sessionsStore
 const router = useRouter()
-const message = useMessage()
+const { message } = App.useApp()
 
 const assets = ref([])
 const summary = ref({})
@@ -135,8 +135,8 @@ const importFileInputRef = ref(null)
 const TYPE_LABELS = {
     stock: '股票', fund: '基金', deposit: '存款', bond: '债券', cash: '现金', other: '其他'
 }
-const TYPE_TAG_TYPE = {
-    stock: 'error', fund: 'info', deposit: 'success', bond: 'warning', cash: 'default', other: 'default'
+const TYPE_TAG_COLOR = {
+    stock: 'error', fund: 'processing', deposit: 'success', bond: 'warning', cash: 'default', other: 'default'
 }
 
 const breakdown = computed(() => summary.value?.breakdown || [])
@@ -148,51 +148,50 @@ const tableData = computed(() => assets.value.map(a => {
 }))
 
 const columns = [
-    { title: '名称', key: 'name', render: (row) => row.name || '-' },
+    { title: '名称', dataIndex: 'name', key: 'name', customRender: ({ record }) => record.name || '-' },
     {
-        title: '类型', key: 'type',
-        render: (row) => h(
-            NTag,
-            { type: TYPE_TAG_TYPE[row.type] || 'default', size: 'small', bordered: false },
-            { default: () => typeLabel(row.type) }
+        title: '类型', dataIndex: 'type', key: 'type',
+        customRender: ({ record }) => h(
+            Tag,
+            { color: TYPE_TAG_COLOR[record.type] || 'default', bordered: false },
+            { default: () => typeLabel(record.type) }
         )
     },
-    { title: '代码', key: 'symbol', render: (row) => row.symbol || '-' },
-    { title: '数量', key: 'amount', render: (row) => formatNumber(row.amount) },
-    { title: '成本价', key: 'costPrice', render: (row) => formatMoney(row.costPrice) },
-    { title: '估算市值', key: 'marketValue', render: (row) => formatMoney(row._marketValue) },
+    { title: '代码', dataIndex: 'symbol', key: 'symbol', customRender: ({ record }) => record.symbol || '-' },
+    { title: '数量', dataIndex: 'amount', key: 'amount', customRender: ({ record }) => formatNumber(record.amount) },
+    { title: '成本价', dataIndex: 'costPrice', key: 'costPrice', customRender: ({ record }) => formatMoney(record.costPrice) },
+    { title: '估算市值', dataIndex: '_marketValue', key: 'marketValue', customRender: ({ record }) => formatMoney(record._marketValue) },
     {
-        title: '盈亏', key: 'profit',
-        render: (row) => h(
+        title: '盈亏', dataIndex: '_profit', key: 'profit',
+        customRender: ({ record }) => h(
             'span',
-            { style: { color: profitColor(row._profit), fontWeight: 600 } },
-            formatMoney(row._profit)
+            { style: { color: profitColor(record._profit), fontWeight: 600 } },
+            formatMoney(record._profit)
         )
     },
     {
         title: '操作', key: 'actions',
-        render: (row) => h('div', { class: 'action-cell' }, [
+        customRender: ({ record }) => h('div', { class: 'action-cell' }, [
             h(
-                NButton,
-                { size: 'small', text: true, type: 'primary', onClick: () => openEdit(row) },
+                Button,
+                { type: 'link', size: 'small', onClick: () => openEdit(record) },
                 {
                     default: () => '编辑',
-                    icon: () => h(NIcon, null, { default: () => h(CreateOutline) })
+                    icon: () => h(EditOutlined)
                 }
             ),
             h(
-                NPopconfirm,
-                { onPositiveClick: () => handleDelete(row) },
+                Popconfirm,
+                { title: `确定删除「${record.name || record.symbol}」吗？`, onConfirm: () => handleDelete(record) },
                 {
-                    trigger: () => h(
-                        NButton,
-                        { size: 'small', text: true, type: 'error' },
+                    default: () => h(
+                        Button,
+                        { type: 'link', size: 'small', danger: true },
                         {
                             default: () => '删除',
-                            icon: () => h(NIcon, null, { default: () => h(TrashOutline) })
+                            icon: () => h(DeleteOutlined)
                         }
-                    ),
-                    default: () => `确定删除「${row.name || row.symbol}」吗？`
+                    )
                 }
             )
         ])

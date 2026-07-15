@@ -34,7 +34,7 @@
 
 <script setup>
 import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
-import { useMessage } from 'naive-ui'
+import { App } from 'ant-design-vue'
 import AppLayout from '../components/AppLayout.vue'
 import SessionSidebar from '../components/SessionSidebar.vue'
 import MessageList from '../components/MessageList.vue'
@@ -46,7 +46,7 @@ import { settings } from '../stores/settings.js'
 const { state, current, createSession, selectSession, deleteSession,
     renameByFirstMessage, addMessage, updateMessage, saveDraft } = sessionsStore
 
-const message = useMessage()
+const { message } = App.useApp()
 const messageListRef = ref(null)
 const inputRef = ref(null)
 const loading = ref(false)

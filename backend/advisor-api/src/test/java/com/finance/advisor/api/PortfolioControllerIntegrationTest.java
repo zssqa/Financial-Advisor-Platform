@@ -3,6 +3,7 @@ package com.finance.advisor.api;
 import com.finance.advisor.portfolio.Asset;
 import com.finance.advisor.portfolio.PortfolioController;
 import com.finance.advisor.portfolio.PortfolioService;
+import com.finance.advisor.portfolio.PriceAlertService;
 import com.finance.advisor.user.JwtService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -25,13 +26,15 @@ class PortfolioControllerIntegrationTest extends AbstractSecurityMvcTest {
 
     private MockMvc mockMvc;
     private PortfolioService portfolioService;
+    private PriceAlertService priceAlertService;
     private String token;
 
     @BeforeEach
     void setUp() {
         portfolioService = mock(PortfolioService.class);
+        priceAlertService = mock(PriceAlertService.class);
         JwtService jwtService = new JwtService(JWT_SECRET, JWT_EXPIRATION);
-        PortfolioController controller = new PortfolioController(portfolioService);
+        PortfolioController controller = new PortfolioController(portfolioService, priceAlertService);
         mockMvc = buildSecurityMockMvc(controller, jwtService);
         token = jwtService.generateToken(1L, "alice");
     }

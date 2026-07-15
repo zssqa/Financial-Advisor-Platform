@@ -13,90 +13,91 @@
         <div class="market-view">
             <div class="content">
                 <h2 class="title">
-                    <n-icon size="22"><TrendingUpOutline /></n-icon>
+                    <RiseOutlined :style="{ fontSize: '22px' }" />
                     市场行情
                 </h2>
 
                 <div class="blocks">
                     <!-- 四大指数 -->
-                    <n-card class="block" :bordered="true">
-                        <template #header>
+                    <a-card class="block" :bordered="true">
+                        <template #title>
                             <div class="block-title">
-                                <n-icon size="18" color="#202123"><StatsChartOutline /></n-icon>
+                                <FundOutlined :style="{ fontSize: '18px', color: '#202123' }" />
                                 四大指数
                             </div>
                         </template>
-                        <n-spin :show="loading.indices">
+                        <a-spin :spinning="loading.indices">
                             <div class="spin-area">
-                                <n-grid
+                                <a-row
                                     v-if="indices.length"
-                                    cols="1 s:2 m:4"
-                                    responsive="screen"
-                                    :x-gap="14"
-                                    :y-gap="14"
+                                    :gutter="[14, 14]"
                                 >
-                                    <n-grid-item v-for="(item, idx) in indices" :key="idx">
-                                        <n-card class="index-card" size="small" :bordered="true">
+                                    <a-col
+                                        v-for="(item, idx) in indices"
+                                        :key="idx"
+                                        :xs="24"
+                                        :sm="12"
+                                        :md="6"
+                                    >
+                                        <a-card class="index-card" size="small" :bordered="true">
                                             <div class="index-name">{{ indexName(item) }}</div>
                                             <div
                                                 class="index-price"
                                                 :style="{ color: changeColor(indexChange(item)) }"
                                             >
-                                                {{ formatPoint(indexPrice(item)) }}
+                                                {{ indexPrice(item) == null ? '--' : formatPoint(indexPrice(item)) }}
                                             </div>
                                             <div
                                                 class="index-change"
                                                 :style="{ color: changeColor(indexChange(item)) }"
                                             >
-                                                <span class="arrow">
+                                                <span class="arrow" v-if="indexChange(item) != null">
                                                     {{ indexChange(item) >= 0 ? '▲' : '▼' }}
                                                 </span>
-                                                {{ formatPercent(indexChange(item)) }}
+                                                {{ indexChange(item) == null ? '--' : formatPercent(indexChange(item)) }}
                                             </div>
-                                        </n-card>
-                                    </n-grid-item>
-                                </n-grid>
-                                <n-empty
+                                        </a-card>
+                                    </a-col>
+                                </a-row>
+                                <a-empty
                                     v-else-if="!loading.indices"
                                     :description="errors.indices ? '指数数据加载失败' : '暂无指数数据'"
                                 >
-                                    <template #extra>
-                                        <n-button
-                                            v-if="errors.indices"
-                                            size="small"
-                                            type="primary"
-                                            @click="loadIndices"
-                                        >
-                                            重试
-                                        </n-button>
-                                    </template>
-                                </n-empty>
+                                    <a-button
+                                        v-if="errors.indices"
+                                        size="small"
+                                        type="primary"
+                                        @click="loadIndices"
+                                    >
+                                        重试
+                                    </a-button>
+                                </a-empty>
                             </div>
-                        </n-spin>
-                    </n-card>
+                        </a-spin>
+                    </a-card>
 
                     <!-- 市场情绪 + 金融日历 -->
-                    <n-grid cols="1 m:2" responsive="screen" :x-gap="16" :y-gap="16">
+                    <a-row :gutter="[16, 16]">
                         <!-- 市场情绪 -->
-                        <n-grid-item>
-                            <n-card class="block" :bordered="true">
-                                <template #header>
+                        <a-col :xs="24" :md="12">
+                            <a-card class="block" :bordered="true">
+                                <template #title>
                                     <div class="block-title">
-                                        <n-icon size="18" color="#202123"><PulseOutline /></n-icon>
+                                        <DashboardOutlined :style="{ fontSize: '18px', color: '#202123' }" />
                                         市场情绪
                                     </div>
                                 </template>
-                                <n-spin :show="loading.sentiment">
+                                <a-spin :spinning="loading.sentiment">
                                     <div class="spin-area">
                                         <div v-if="sentiment" class="gauge-wrap">
                                             <div class="gauge">
-                                                <n-progress
+                                                <a-progress
                                                     type="circle"
-                                                    :percentage="sentimentValue(sentiment)"
-                                                    :color="sentimentInfo.color"
-                                                    rail-color="#ececf1"
-                                                    :stroke-width="10"
-                                                    :show-indicator="false"
+                                                    :percent="sentimentValue(sentiment)"
+                                                    :strokeColor="sentimentInfo.color"
+                                                    trailColor="#ececf1"
+                                                    :strokeWidth="10"
+                                                    :showInfo="false"
                                                 />
                                                 <div class="gauge-center">
                                                     <div
@@ -109,78 +110,63 @@
                                                 </div>
                                             </div>
                                             <div class="gauge-desc">
-                                                <n-tag
-                                                    size="small"
-                                                    round
-                                                    :bordered="false"
-                                                    :color="{ color: sentimentInfo.color, textColor: '#ffffff' }"
-                                                >
+                                                <a-tag :color="sentimentInfo.color">
                                                     {{ sentimentInfo.label }}
-                                                </n-tag>
+                                                </a-tag>
                                                 <p class="gauge-text">{{ sentimentInfo.desc }}</p>
                                                 <p class="gauge-hint">贪婪与恐惧指数（0 = 极度恐惧，100 = 极度贪婪）</p>
                                             </div>
                                         </div>
-                                        <n-empty
+                                        <a-empty
                                             v-else-if="!loading.sentiment"
                                             :description="errors.sentiment ? '情绪数据加载失败' : '暂无情绪数据'"
                                         >
-                                            <template #extra>
-                                                <n-button
-                                                    v-if="errors.sentiment"
-                                                    size="small"
-                                                    type="primary"
-                                                    @click="loadSentiment"
-                                                >
-                                                    重试
-                                                </n-button>
-                                            </template>
-                                        </n-empty>
+                                            <a-button
+                                                v-if="errors.sentiment"
+                                                size="small"
+                                                type="primary"
+                                                @click="loadSentiment"
+                                            >
+                                                重试
+                                            </a-button>
+                                        </a-empty>
                                     </div>
-                                </n-spin>
-                            </n-card>
-                        </n-grid-item>
+                                </a-spin>
+                            </a-card>
+                        </a-col>
 
                         <!-- 金融日历 -->
-                        <n-grid-item>
-                            <n-card class="block" :bordered="true">
-                                <template #header>
+                        <a-col :xs="24" :md="12">
+                            <a-card class="block" :bordered="true">
+                                <template #title>
                                     <div class="block-title">
-                                        <n-icon size="18" color="#202123"><CalendarNumberOutline /></n-icon>
+                                        <CalendarOutlined :style="{ fontSize: '18px', color: '#202123' }" />
                                         本周金融日历
                                     </div>
                                 </template>
-                                <n-spin :show="loading.calendar">
+                                <a-spin :spinning="loading.calendar">
                                     <div class="spin-area">
-                                        <n-timeline v-if="calendar.length" size="large">
-                                            <n-timeline-item
+                                        <a-timeline v-if="calendar.length">
+                                            <a-timeline-item
                                                 v-for="(item, idx) in calendar"
                                                 :key="idx"
-                                                :type="timelineType(item)"
-                                                :time="calTime(item)"
+                                                :color="timelineColor(timelineType(item))"
                                             >
-                                                <template #header>
+                                                <div class="cal-header">
                                                     <span class="cal-title">{{ calTitle(item) }}</span>
-                                                </template>
+                                                    <span class="cal-time">{{ calTime(item) }}</span>
+                                                </div>
                                                 <div class="cal-body">
                                                     <div class="cal-tags">
-                                                        <n-tag
+                                                        <a-tag
                                                             v-if="calCountry(item)"
-                                                            size="small"
-                                                            round
-                                                            :bordered="false"
-                                                            type="info"
+                                                            color="blue"
                                                         >
                                                             {{ calCountry(item) }}
-                                                        </n-tag>
-                                                        <n-tag
-                                                            size="small"
-                                                            round
-                                                            :bordered="false"
-                                                            :type="importanceTagType(item)"
-                                                        >
+                                                        </a-tag>
+                                                        <a-tag :color="importanceTagType(item)">
                                                             {{ importanceLabel(item) }}
-                                                        </n-tag>
+                                                        </a-tag>
                                                     </div>
                                                     <div class="cal-figures">
                                                         <span>预期 {{ calFig(item, 'forecast') }}</span>
@@ -190,28 +176,26 @@
                                                         </span>
                                                     </div>
                                                 </div>
-                                            </n-timeline-item>
-                                        </n-timeline>
-                                        <n-empty
+                                            </a-timeline-item>
+                                        </a-timeline>
+                                        <a-empty
                                             v-else-if="!loading.calendar"
                                             :description="errors.calendar ? '日历数据加载失败' : '本周暂无重要数据发布'"
                                         >
-                                            <template #extra>
-                                                <n-button
-                                                    v-if="errors.calendar"
-                                                    size="small"
-                                                    type="primary"
-                                                    @click="loadCalendar"
-                                                >
-                                                    重试
-                                                </n-button>
-                                            </template>
-                                        </n-empty>
+                                            <a-button
+                                                v-if="errors.calendar"
+                                                size="small"
+                                                type="primary"
+                                                @click="loadCalendar"
+                                            >
+                                                重试
+                                            </a-button>
+                                        </a-empty>
                                     </div>
-                                </n-spin>
-                            </n-card>
-                        </n-grid-item>
-                    </n-grid>
+                                </a-spin>
+                            </a-card>
+                        </a-col>
+                    </a-row>
                 </div>
             </div>
         </div>
@@ -222,12 +206,8 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import {
-    NIcon, NSpin, NEmpty, NButton, NProgress, NTag, NCard,
-    NGrid, NGridItem, NTimeline, NTimelineItem
-} from 'naive-ui'
-import {
-    TrendingUpOutline, StatsChartOutline, PulseOutline, CalendarNumberOutline
-} from '@vicons/ionicons5'
+    RiseOutlined, FundOutlined, DashboardOutlined, CalendarOutlined
+} from '@ant-design/icons-vue'
 import AppLayout from '../components/AppLayout.vue'
 import SessionSidebar from '../components/SessionSidebar.vue'
 import { sessionsStore } from '../stores/sessions.js'
@@ -250,13 +230,22 @@ function indexName(i) {
     return i.name || i.indexName || i.symbol || i.code || '—'
 }
 function indexPrice(i) {
-    return Number(i.price ?? i.point ?? i.value ?? i.close ?? i.last ?? 0)
+    const raw = i.price ?? i.point ?? i.value ?? i.close ?? i.last ?? null
+    if (raw === null || raw === undefined) return null
+    const v = Number(raw)
+    if (isNaN(v) || v === 0) return null
+    return v
 }
 function indexChange(i) {
-    return Number(i.changePercent ?? i.pctChange ?? i.percent ?? i.changePct ?? i.change ?? 0)
+    const raw = i.changePercent ?? i.pctChange ?? i.percent ?? i.changePct ?? i.change ?? null
+    if (raw === null || raw === undefined) return null
+    const v = Number(raw)
+    if (isNaN(v) || v === -100) return null
+    return v
 }
-// A股习惯：涨红跌绿
+// A股习惯：涨红跌绿；异常值用中性灰
 function changeColor(v) {
+    if (v === null || v === undefined) return '#a0a0b0'
     return Number(v) >= 0 ? '#e74c3c' : '#2ecc71'
 }
 function formatPoint(v) {
@@ -316,6 +305,11 @@ function importanceTagType(c) {
 function timelineType(c) {
     const m = calImportance(c)
     return m === 'high' ? 'error' : m === 'low' ? 'default' : 'warning'
+}
+// Naive UI timeline type → Ant Design Vue timeline color
+function timelineColor(type) {
+    const map = { success: 'green', error: 'red', warning: 'orange', default: 'gray' }
+    return map[type] || 'blue'
 }
 // 经济数据指标值（预期/前值/公布）的多种字段名兼容
 const FIG_ALIASES = {
@@ -503,10 +497,22 @@ onMounted(() => {
     margin: 0;
     line-height: 1.5;
 }
+.cal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
 .cal-title {
     font-size: 16px;
     font-weight: 600;
     color: #202123;
+}
+.cal-time {
+    font-size: 12px;
+    color: #a0a0b0;
+    white-space: nowrap;
 }
 .cal-body {
     margin-top: 8px;

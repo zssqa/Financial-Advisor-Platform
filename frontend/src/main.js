@@ -1,5 +1,6 @@
 import { createApp } from 'vue'
 import { createRouter, createWebHistory } from 'vue-router'
+import Antd from 'ant-design-vue'
 import App from './App.vue'
 import ChatView from './views/ChatView.vue'
 import KnowledgeView from './views/KnowledgeView.vue'
@@ -47,5 +48,6 @@ router.afterEach((to) => {
 })
 
 const app = createApp(App)
+app.use(Antd)
 app.use(router)
 app.mount('#app')

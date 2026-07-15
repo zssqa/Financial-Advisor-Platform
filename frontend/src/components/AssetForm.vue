@@ -1,65 +1,63 @@
 <template>
-    <n-form
+    <a-form
         ref="formRef"
         :model="form"
         :rules="rules"
-        label-placement="left"
-        label-width="80"
-        require-mark-placement="right-hanging"
+        :label-col="{ span: 6 }"
+        :wrapper-col="{ span: 18 }"
     >
-        <n-form-item label="类型" path="type">
-            <n-select v-model:value="form.type" :options="typeOptions" placeholder="选择资产类型" />
-        </n-form-item>
-        <n-form-item label="代码" path="symbol">
-            <n-input v-model:value="form.symbol" placeholder="如 600519 / 000001" />
-        </n-form-item>
-        <n-form-item label="名称" path="name">
-            <n-input v-model:value="form.name" placeholder="资产名称" />
-        </n-form-item>
-        <n-form-item label="数量" path="amount">
-            <n-input-number
+        <a-form-item label="类型" name="type">
+            <a-select v-model:value="form.type" :options="typeOptions" placeholder="选择资产类型" />
+        </a-form-item>
+        <a-form-item label="代码" name="symbol">
+            <a-input v-model:value="form.symbol" placeholder="如 600519 / 000001" />
+        </a-form-item>
+        <a-form-item label="名称" name="name">
+            <a-input v-model:value="form.name" placeholder="资产名称" />
+        </a-form-item>
+        <a-form-item label="数量" name="amount">
+            <a-input-number
                 v-model:value="form.amount"
                 :min="0"
                 :step="1"
                 style="width: 100%"
                 placeholder="持有数量"
             />
-        </n-form-item>
-        <n-form-item label="成本价" path="costPrice">
-            <n-input-number
+        </a-form-item>
+        <a-form-item label="成本价" name="costPrice">
+            <a-input-number
                 v-model:value="form.costPrice"
                 :min="0"
                 :step="0.01"
                 style="width: 100%"
                 placeholder="单份成本价"
             />
-        </n-form-item>
-        <n-form-item label="买入日期" path="buyDate">
-            <n-date-picker
-                v-model:value="form.buyDate"
-                type="date"
+        </a-form-item>
+        <a-form-item label="买入日期" name="buyDate">
+            <a-date-picker
+                :value="form.buyDate ? dayjs(form.buyDate) : null"
+                @change="(val) => form.buyDate = val ? val.valueOf() : null"
                 style="width: 100%"
                 placeholder="选择买入日期"
             />
-        </n-form-item>
-        <n-form-item label="备注" path="notes">
-            <n-input
+        </a-form-item>
+        <a-form-item label="备注" name="notes">
+            <a-textarea
                 v-model:value="form.notes"
-                type="textarea"
                 :rows="3"
                 placeholder="备注（可选）"
             />
-        </n-form-item>
+        </a-form-item>
         <div class="form-actions">
-            <n-button @click="emit('cancel')">取消</n-button>
-            <n-button type="primary" @click="handleSubmit">确定</n-button>
+            <a-button @click="emit('cancel')">取消</a-button>
+            <a-button type="primary" @click="handleSubmit">确定</a-button>
         </div>
-    </n-form>
+    </a-form>
 </template>
 
 <script setup>
 import { ref, reactive, watch } from 'vue'
-import { NForm, NFormItem, NInput, NInputNumber, NSelect, NDatePicker, NButton } from 'naive-ui'
+import dayjs from 'dayjs'
 
 const props = defineProps({
     asset: { type: Object, default: null }

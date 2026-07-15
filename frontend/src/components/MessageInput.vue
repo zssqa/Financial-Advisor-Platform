@@ -2,10 +2,10 @@
     <div class="input-container">
         <!-- File preview area (above textarea) -->
         <div v-if="uploadedFiles.length > 0" class="file-previews">
-            <n-tag v-for="(file, index) in uploadedFiles" :key="index"
-                   closable @close="removeFile(index)" type="info" size="small">
+            <a-tag v-for="(file, index) in uploadedFiles" :key="index"
+                   closable @close="removeFile(index)" color="default">
                 {{ file.name }}
-            </n-tag>
+            </a-tag>
         </div>
         <div class="input-wrap">
             <textarea
@@ -18,11 +18,11 @@
                 @keydown="handleKeydown"
                 @input="handleInput"
             ></textarea>
-            <n-button quaternary circle @click="triggerFileInput" :loading="uploading" :disabled="disabled">
+            <a-button type="text" shape="circle" @click="triggerFileInput" :loading="uploading" :disabled="disabled">
                 <template #icon>
-                    <n-icon><AttachOutline /></n-icon>
+                    <PaperClipOutlined />
                 </template>
-            </n-button>
+            </a-button>
             <button
                 class="send-btn"
                 :disabled="disabled || !text.trim()"
@@ -39,8 +39,8 @@
 
 <script setup>
 import { ref, watch, onMounted, nextTick } from 'vue'
-import { AttachOutline } from '@vicons/ionicons5'
-import { NButton, NIcon, NTag, useMessage } from 'naive-ui'
+import { PaperClipOutlined } from '@ant-design/icons-vue'
+import { App } from 'ant-design-vue'
 import http from '../api/http.js'
 
 const props = defineProps({
@@ -51,7 +51,7 @@ const props = defineProps({
 
 const emit = defineEmits(['send', 'update:draft'])
 
-const message = useMessage()
+const { message } = App.useApp()
 const text = ref('')
 const textareaRef = ref(null)
 const fileInputRef = ref(null)

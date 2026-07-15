@@ -21,23 +21,21 @@
         <!-- 主区 -->
         <main class="main">
             <button v-if="isMobile || !sidebarOpen" class="toggle-btn" @click="toggleSidebar">
-                <n-icon size="20">
-                    <MenuOutline v-if="!sidebarOpen" />
-                    <CloseOutline v-else />
-                </n-icon>
+                <MenuOutlined v-if="!sidebarOpen" style="font-size: 20px" />
+                <CloseOutlined v-else style="font-size: 20px" />
             </button>
 
             <header v-if="auth.isLoggedIn" class="top-bar">
                 <div class="user-box">
-                    <n-icon size="16"><PersonCircleOutline /></n-icon>
+                    <UserOutlined style="font-size: 16px" />
                     <span class="username">{{ auth.user?.username }}</span>
                 </div>
-                <n-button size="small" quaternary type="error" @click="handleLogout">
+                <a-button size="small" type="text" danger @click="handleLogout">
                     <template #icon>
-                        <n-icon><LogOutOutline /></n-icon>
+                        <LogoutOutlined />
                     </template>
                     退出登录
-                </n-button>
+                </a-button>
             </header>
 
             <div class="main-content">
@@ -50,8 +48,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { NIcon, NButton } from 'naive-ui'
-import { MenuOutline, CloseOutline, PersonCircleOutline, LogOutOutline } from '@vicons/ionicons5'
+import { MenuOutlined, CloseOutlined, UserOutlined, LogoutOutlined } from '@ant-design/icons-vue'
 import { auth } from '../stores/auth.js'
 import { getProfile } from '../api/auth.js'
 

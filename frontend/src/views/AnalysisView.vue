@@ -15,50 +15,9 @@
                 <!-- 页面标题 -->
                 <div class="header-row">
                     <h2 class="title">
-                        <n-icon size="22"><BarChartOutline /></n-icon>
+                        <BarChartOutlined :style="{ fontSize: '22px' }" />
                         投资分析
                     </h2>
-                </div>
-
-                <!-- K线图区 -->
-                <div class="card">
-                    <div class="card-title">K线图</div>
-                    <div class="search-row">
-                        <n-input
-                            v-model:value="symbol"
-                            placeholder="输入股票代码，如 sh600036"
-                            clearable
-                            @keyup.enter="loadKline"
-                        />
-                        <n-button type="primary" :loading="klineLoading" @click="loadKline">
-                            查询
-                        </n-button>
-                    </div>
-                    <div class="quick-stocks">
-                        <span class="quick-label">快捷选择：</span>
-                        <n-tag
-                            v-for="s in quickStocks"
-                            :key="s.code"
-                            :type="symbol === s.code ? 'primary' : 'default'"
-                            size="small"
-                            checkable
-                            :checked="symbol === s.code"
-                            @click="selectStock(s.code)"
-                        >
-                            {{ s.name }}
-                        </n-tag>
-                    </div>
-                    <div v-if="klineLoading" class="kline-loading">
-                        <n-spin size="medium" />
-                        <span>正在生成K线图...</span>
-                    </div>
-                    <div v-else-if="klineUrl" class="kline-img">
-                        <img :src="klineUrl" alt="K线图" />
-                    </div>
-                    <div v-else class="empty-state">
-                        <n-icon size="40" color="#d9d9e3"><BarChartOutline /></n-icon>
-                        <p>输入股票代码或选择快捷股票，查看K线图</p>
-                    </div>
                 </div>
 
                 <!-- 组合优化权重 -->
@@ -72,7 +31,7 @@
                                 :options="doughnutOptions"
                             />
                             <div v-else-if="optimizeLoading" class="chart-loading">
-                                <n-spin size="medium" />
+                                <a-spin />
                             </div>
                             <div v-else class="empty-state">
                                 <p>暂无优化数据</p>
@@ -108,10 +67,10 @@
                             :options="scatterOptions"
                         />
                         <div v-else-if="riskLoading" class="chart-loading">
-                            <n-spin size="medium" />
+                            <a-spin />
                         </div>
                         <div v-else class="empty-state">
-                            <p>暂无风险收益数据</p>
+                            <p>历史数据积累中，暂无法生成有效散点图</p>
                         </div>
                     </div>
                 </div>
@@ -123,8 +82,8 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { NIcon, NButton, NInput, NTag, NSpin, useMessage } from 'naive-ui'
-import { BarChartOutline } from '@vicons/ionicons5'
+import { App } from 'ant-design-vue'
+import { BarChartOutlined } from '@ant-design/icons-vue'
 import { Doughnut, Scatter } from 'vue-chartjs'
 import {
     Chart as ChartJS,
@@ -138,19 +97,14 @@ import {
 import AppLayout from '../components/AppLayout.vue'
 import SessionSidebar from '../components/SessionSidebar.vue'
 import { sessionsStore } from '../stores/sessions.js'
-import { getKline, getOptimize, getRiskReturn } from '../api/analysis.js'
+import { getOptimize, getRiskReturn } from '../api/analysis.js'
 
 // 注册 Chart.js 组件
 ChartJS.register(ArcElement, PointElement, Tooltip, Legend, LinearScale, Title)
 
 const { state } = sessionsStore
 const router = useRouter()
-const message = useMessage()
-
-// K线图相关状态
-const symbol = ref('sh600036')
-const klineRaw = ref('')
-const klineLoading = ref(false)
+const { message } = App.useApp()
 
 // 组合优化相关状态
 const optimizeData = ref(null)
@@ -160,60 +114,11 @@ const optimizeLoading = ref(false)
 const riskReturnData = ref([])
 const riskLoading = ref(false)
 
-// 常见股票快捷选项
-const quickStocks = [
-    { name: '招商银行', code: 'sh600036' },
-    { name: '平安银行', code: 'sz000001' },
-    { name: '贵州茅台', code: 'sh600519' }
-]
-
 // 图表配色
 const CHART_COLORS = [
     '#1890ff', '#52c41a', '#f5222d', '#faad14',
     '#722ed1', '#13c2c2', '#eb2f96', '#fa541c'
 ]
-
-// ===== K线图 =====
-// 处理后端返回的图片路径或 base64，兼容多种返回格式
-const klineUrl = computed(() => {
-    const raw = klineRaw.value
-    if (!raw) return ''
-    if (typeof raw === 'string') {
-        // base64 或完整 URL 直接使用
-        if (raw.startsWith('data:') || raw.startsWith('http')) return raw
-        // 以 / 开头的服务器路径直接使用
-        if (raw.startsWith('/')) return raw
-        // 相对路径补充 /api 前缀
-        return '/api/' + raw
-    }
-    // 对象形式，尝试常见字段
-    return raw.url || raw.path || raw.image || ''
-})
-
-function selectStock(code) {
-    symbol.value = code
-    loadKline()
-}
-
-async function loadKline() {
-    const sym = symbol.value?.trim()
-    if (!sym) {
-        message.warning('请输入股票代码')
-        return
-    }
-    klineLoading.value = true
-    try {
-        klineRaw.value = await getKline(sym)
-        if (!klineUrl.value) {
-            message.warning('未获取到K线图数据')
-        }
-    } catch (e) {
-        message.error('获取K线图失败：' + (e?.response?.data?.message || e?.message || '未知错误'))
-        klineRaw.value = ''
-    } finally {
-        klineLoading.value = false
-    }
-}
 
 // ===== 组合优化 =====
 const optimizeChartData = computed(() => {
@@ -262,7 +167,30 @@ const doughnutOptions = {
 async function loadOptimize() {
     optimizeLoading.value = true
     try {
-        optimizeData.value = await getOptimize()
+        const res = await getOptimize()
+        // 后端返回结构化 JSON：{ weights: {...}, expectedReturn, volatility, sharpeRatio }
+        // 兼容旧格式：若顶层直接含权重字段，则包装为 { weights: ... }
+        if (res && typeof res === 'object') {
+            if (res.weights && typeof res.weights === 'object') {
+                optimizeData.value = res
+            } else {
+                // 兼容旧格式：顶层即为 weights 映射，或含 weight/allocation 字段
+                const weights = res.weight || res.allocation || res
+                if (weights && typeof weights === 'object' && Object.keys(weights).length) {
+                    optimizeData.value = {
+                        weights,
+                        expectedReturn: res.expectedReturn ?? res.expected_return,
+                        volatility: res.volatility ?? res.annualVolatility ?? res.annual_volatility,
+                        sharpeRatio: res.sharpeRatio ?? res.sharpe_ratio
+                    }
+                } else {
+                    optimizeData.value = null
+                    message.warning('优化数据格式异常')
+                }
+            }
+        } else {
+            optimizeData.value = null
+        }
     } catch (e) {
         message.error('获取优化数据失败：' + (e?.response?.data?.message || e?.message || '未知错误'))
         optimizeData.value = null
@@ -359,7 +287,6 @@ function goChat() {
 }
 
 onMounted(() => {
-    loadKline()
     loadOptimize()
     loadRiskReturn()
 })
@@ -372,12 +299,6 @@ onMounted(() => {
 .title { margin: 0; display: flex; align-items: center; gap: 8px; font-size: 20px; color: #202123; font-weight: 600; }
 .card { background: #ffffff; border: 1px solid #ececf1; border-radius: 8px; padding: 16px 20px; margin-bottom: 16px; }
 .card-title { font-size: 15px; font-weight: 600; color: #202123; margin-bottom: 12px; }
-.search-row { display: flex; gap: 8px; margin-bottom: 12px; }
-.quick-stocks { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
-.quick-label { font-size: 13px; color: #6e6f80; }
-.kline-loading { padding: 40px; text-align: center; color: #6e6f80; display: flex; flex-direction: column; align-items: center; gap: 12px; }
-.kline-img { text-align: center; }
-.kline-img img { max-width: 100%; border-radius: 4px; }
 .optimize-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: center; }
 .chart-area { height: 280px; display: flex; align-items: center; justify-content: center; }
 .chart-loading { padding: 40px; text-align: center; }
@@ -391,6 +312,5 @@ onMounted(() => {
 .empty-state p { margin: 0; font-size: 14px; }
 @media (max-width: 768px) {
     .optimize-grid { grid-template-columns: 1fr; }
-    .search-row { flex-direction: column; }
 }
 </style>

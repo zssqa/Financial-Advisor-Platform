@@ -1,109 +1,98 @@
 <template>
     <div class="login-page">
-        <n-card class="login-card" :bordered="false">
+        <a-card class="login-card" :bordered="false">
             <div class="brand">
-                <n-icon size="32" color="#18a058"><CashOutline /></n-icon>
+                <DollarOutlined :style="{ fontSize: '32px', color: '#18a058' }" />
                 <span class="brand-title">金融理财顾问</span>
             </div>
 
-            <n-tabs v-model:value="mode" type="line" animated>
-                <n-tab-pane name="login" tab="登录">
-                    <n-form
+            <a-tabs v-model:activeKey="mode">
+                <a-tab-pane key="login" tab="登录">
+                    <a-form
                         ref="loginFormRef"
                         :model="loginForm"
                         :rules="loginRules"
-                        label-placement="top"
-                        size="large"
+                        layout="vertical"
                     >
-                        <n-form-item label="用户名" path="username">
-                            <n-input
+                        <a-form-item label="用户名" name="username">
+                            <a-input
                                 v-model:value="loginForm.username"
                                 placeholder="请输入用户名"
-                                clearable
+                                allow-clear
                                 @keyup.enter="handleLogin"
                             />
-                        </n-form-item>
-                        <n-form-item label="密码" path="password">
-                            <n-input
+                        </a-form-item>
+                        <a-form-item label="密码" name="password">
+                            <a-input-password
                                 v-model:value="loginForm.password"
-                                type="password"
-                                show-password-on="click"
                                 placeholder="请输入密码"
                                 @keyup.enter="handleLogin"
                             />
-                        </n-form-item>
-                        <n-button
+                        </a-form-item>
+                        <a-button
                             type="primary"
                             block
                             :loading="loading"
                             @click="handleLogin"
                         >
                             登录
-                        </n-button>
-                    </n-form>
-                </n-tab-pane>
+                        </a-button>
+                    </a-form>
+                </a-tab-pane>
 
-                <n-tab-pane name="register" tab="注册">
-                    <n-form
+                <a-tab-pane key="register" tab="注册">
+                    <a-form
                         ref="registerFormRef"
                         :model="registerForm"
                         :rules="registerRules"
-                        label-placement="top"
-                        size="large"
+                        layout="vertical"
                     >
-                        <n-form-item label="用户名" path="username">
-                            <n-input
+                        <a-form-item label="用户名" name="username">
+                            <a-input
                                 v-model:value="registerForm.username"
                                 placeholder="请输入用户名"
-                                clearable
+                                allow-clear
                             />
-                        </n-form-item>
-                        <n-form-item label="密码" path="password">
-                            <n-input
+                        </a-form-item>
+                        <a-form-item label="密码" name="password">
+                            <a-input-password
                                 v-model:value="registerForm.password"
-                                type="password"
-                                show-password-on="click"
                                 placeholder="请输入密码"
                             />
-                        </n-form-item>
-                        <n-form-item label="确认密码" path="confirmPassword">
-                            <n-input
+                        </a-form-item>
+                        <a-form-item label="确认密码" name="confirmPassword">
+                            <a-input-password
                                 v-model:value="registerForm.confirmPassword"
-                                type="password"
-                                show-password-on="click"
                                 placeholder="请再次输入密码"
                                 @keyup.enter="handleRegister"
                             />
-                        </n-form-item>
-                        <n-button
+                        </a-form-item>
+                        <a-button
                             type="primary"
                             block
                             :loading="loading"
                             @click="handleRegister"
                         >
                             注册
-                        </n-button>
-                    </n-form>
-                </n-tab-pane>
-            </n-tabs>
-        </n-card>
+                        </a-button>
+                    </a-form>
+                </a-tab-pane>
+            </a-tabs>
+        </a-card>
     </div>
 </template>
 
 <script setup>
 import { ref, reactive } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { useMessage } from 'naive-ui'
-import {
-    NCard, NTabs, NTabPane, NForm, NFormItem, NInput, NButton, NIcon
-} from 'naive-ui'
-import { CashOutline } from '@vicons/ionicons5'
+import { App } from 'ant-design-vue'
+import { DollarOutlined } from '@ant-design/icons-vue'
 import { login, register } from '../api/auth.js'
 import { auth } from '../stores/auth.js'
 
 const router = useRouter()
 const route = useRoute()
-const message = useMessage()
+const { message } = App.useApp()
 
 const mode = ref('login')
 const loading = ref(false)

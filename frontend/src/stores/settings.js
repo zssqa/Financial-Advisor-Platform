@@ -4,7 +4,8 @@ const STORAGE_KEY = 'fa_settings'
 
 const defaults = {
     riskLevel: 'R3',
-    showReasoning: false
+    showReasoning: false,
+    theme: 'light'
 }
 
 function loadFromStorage() {

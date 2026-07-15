@@ -1,32 +1,20 @@
 <template>
-    <n-config-provider :theme="theme" :locale="zhCN" :date-locale="dateZhCN">
-        <n-loading-bar-provider>
-            <n-dialog-provider>
-                <n-notification-provider>
-                    <n-message-provider>
-                        <router-view />
-                    </n-message-provider>
-                </n-notification-provider>
-            </n-dialog-provider>
-        </n-loading-bar-provider>
-    </n-config-provider>
+    <a-config-provider :locale="zhCN" :theme="themeConfig">
+        <a-app>
+            <router-view />
+        </a-app>
+    </a-config-provider>
 </template>
 
 <script setup>
 import { computed } from 'vue'
-import {
-    NConfigProvider,
-    NLoadingBarProvider,
-    NDialogProvider,
-    NNotificationProvider,
-    NMessageProvider,
-    darkTheme,
-    zhCN,
-    dateZhCN
-} from 'naive-ui'
+import { theme } from 'ant-design-vue'
+import zhCN from 'ant-design-vue/es/locale/zh_CN'
 import { settings } from './stores/settings.js'
 
-const theme = computed(() => settings.theme === 'dark' ? darkTheme : null)
+const themeConfig = computed(() => ({
+    algorithm: settings.theme === 'dark' ? theme.darkAlgorithm : theme.defaultAlgorithm
+}))
 </script>
 
 <style>

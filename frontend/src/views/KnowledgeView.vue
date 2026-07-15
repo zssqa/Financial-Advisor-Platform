@@ -13,7 +13,7 @@
         <div class="knowledge-view">
             <div class="content">
                 <h2 class="title">
-                    <n-icon size="22"><CloudUploadOutline /></n-icon>
+                    <CloudUploadOutlined style="font-size: 22px;" />
                     知识库管理
                 </h2>
 
@@ -29,56 +29,56 @@
                 </div>
 
                 <div class="actions">
-                    <n-input
+                    <a-input
                         v-model:value="searchQuery"
                         placeholder="搜索文档..."
-                        clearable
+                        allow-clear
                         style="max-width: 360px;"
                         @keydown.enter="handleSearch"
-                        @clear="loadDocuments"
+                        @change="e => { if (!e.target.value) loadDocuments() }"
                     >
                         <template #prefix>
-                            <n-icon><SearchOutline /></n-icon>
+                            <SearchOutlined />
                         </template>
-                    </n-input>
-                    <n-upload
-                        :show-file-list="false"
+                    </a-input>
+                    <a-upload
+                        :show-upload-list="false"
                         :before-upload="handleUpload"
                         accept=".pdf,.PDF,.xlsx,.xls,.csv,.md,.txt"
                         multiple
                     >
-                        <n-button type="primary">
-                            <template #icon><n-icon><CloudUploadOutline /></n-icon></template>
+                        <a-button type="primary">
+                            <template #icon><CloudUploadOutlined /></template>
                             上传文档
-                        </n-button>
-                    </n-upload>
+                        </a-button>
+                    </a-upload>
                 </div>
 
-                <n-card title="联网摄入" size="small" style="margin-bottom: 16px;">
-                    <n-space>
-                        <n-input
+                <a-card title="联网摄入" size="small" style="margin-bottom: 16px;">
+                    <a-space>
+                        <a-input
                             v-model:value="ingestKeyword"
                             placeholder="输入关键词，如：2026年A股市场行情"
                             style="width: 300px;"
                             @keydown.enter="handleIngestFromWeb"
                         />
-                        <n-button type="primary" :loading="ingesting" @click="handleIngestFromWeb">
-                            <template #icon><n-icon><GlobeOutline /></n-icon></template>
+                        <a-button type="primary" :loading="ingesting" @click="handleIngestFromWeb">
+                            <template #icon><GlobalOutlined /></template>
                             联网摄入
-                        </n-button>
-                    </n-space>
-                </n-card>
+                        </a-button>
+                    </a-space>
+                </a-card>
 
-                <n-data-table
+                <a-table
                     :columns="columns"
-                    :data="documents"
+                    :data-source="documents"
                     :loading="loading"
                     :bordered="false"
-                    striped
+                    :pagination="false"
                 />
 
                 <div v-if="!loading && documents.length === 0" class="empty">
-                    <n-icon size="64" color="#c5c5d2"><CloudUploadOutline /></n-icon>
+                    <CloudUploadOutlined style="font-size: 64px; color: #c5c5d2;" />
                     <p>暂无文档，请上传 PDF/Excel/CSV/Markdown/TXT 文件</p>
                 </div>
             </div>
@@ -89,8 +89,8 @@
 <script setup>
 import { ref, h, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { NIcon, NInput, NButton, NUpload, NDataTable, NCard, NSpace, useMessage } from 'naive-ui'
-import { CloudUploadOutline, SearchOutline, DocumentTextOutline, GlobeOutline } from '@vicons/ionicons5'
+import { App } from 'ant-design-vue'
+import { CloudUploadOutlined, SearchOutlined, FileTextOutlined, GlobalOutlined } from '@ant-design/icons-vue'
 import AppLayout from '../components/AppLayout.vue'
 import SessionSidebar from '../components/SessionSidebar.vue'
 import { listDocuments, uploadDocument, searchDocuments, getStats, ingestFromWeb } from '../api/documents.js'
@@ -98,7 +98,7 @@ import { sessionsStore } from '../stores/sessions.js'
 
 const { state } = sessionsStore
 const router = useRouter()
-const message = useMessage()
+const { message } = App.useApp()
 
 const documents = ref([])
 const stats = ref({})
@@ -116,30 +116,33 @@ const categoryCount = computed(() => {
 const columns = [
     {
         title: '文件名',
+        dataIndex: 'filename',
         key: 'filename',
-        render(row) {
+        customRender({ record }) {
             return h('div', { style: 'display:flex;align-items:center;gap:6px;' }, [
-                h(NIcon, { size: 16, color: '#10a37f' }, () => h(DocumentTextOutline)),
-                h('span', row.filename || row.name || row.title || '-')
+                h(FileTextOutlined, { style: { fontSize: '16px', color: '#10a37f' } }),
+                h('span', record.filename || record.name || record.title || '-')
             ])
         }
     },
-    { title: '大小', key: 'file_size', render(row) { return formatSize(row.file_size ?? row.size) } },
-    { title: '分类', key: 'category', render(row) { return row.category || '-' } },
+    { title: '大小', dataIndex: 'file_size', key: 'file_size', customRender({ record }) { return formatSize(record.file_size ?? record.size) } },
+    { title: '分类', dataIndex: 'category', key: 'category', customRender({ record }) { return record.category || '-' } },
     {
         title: '上传时间',
+        dataIndex: 'upload_time',
         key: 'upload_time',
-        render(row) {
-            const t = row.upload_time || row.createdAt || row.uploadTime
+        customRender({ record }) {
+            const t = record.upload_time || record.createdAt || record.uploadTime
             return t ? new Date(t).toLocaleString() : '-'
         }
     },
     {
         title: '状态',
+        dataIndex: 'status',
         key: 'status',
-        render(row) {
+        customRender({ record }) {
             // 适配后端实际 status 值：indexed/processing/failed
-            const status = row.status || 'indexed'
+            const status = record.status || 'indexed'
             const map = {
                 indexed: { text: '已导入', color: '#10a37f' },
                 processing: { text: '处理中', color: '#d46b08' },
@@ -202,7 +205,7 @@ async function handleSearch() {
 
 async function handleUpload(file) {
     try {
-        const result = await uploadDocument(file.file)
+        const result = await uploadDocument(file)
         if (result?.success || result?.code === 0) {
             message.success(result?.message || '上传成功')
             await Promise.all([loadDocuments(), loadStats()])

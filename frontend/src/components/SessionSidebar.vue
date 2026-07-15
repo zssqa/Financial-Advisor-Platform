@@ -1,10 +1,10 @@
 <template>
     <div class="session-sidebar">
         <div class="header">
-            <n-button block type="primary" ghost @click="$emit('new-session')">
-                <template #icon><n-icon><AddOutline /></n-icon></template>
+            <a-button block type="primary" ghost @click="$emit('new-session')">
+                <template #icon><PlusOutlined /></template>
                 新建会话
-            </n-button>
+            </a-button>
         </div>
 
         <div class="session-list">
@@ -15,10 +15,10 @@
                 :class="{ active: session.id === currentId }"
                 @click="$emit('select', session.id)"
             >
-                <n-icon size="14" class="icon"><ChatbubbleEllipsesOutline /></n-icon>
+                <MessageOutlined class="icon" style="font-size: 14px" />
                 <span class="title">{{ session.title || '新会话' }}</span>
                 <button class="del-btn" @click.stop="$emit('delete', session.id)">
-                    <n-icon size="14"><TrashOutline /></n-icon>
+                    <DeleteOutlined style="font-size: 14px" />
                 </button>
             </div>
             <div v-if="sessions.length === 0" class="empty">
@@ -34,7 +34,7 @@
                 :class="{ active: currentPath === nav.path }"
                 @click="goTo(nav.path)"
             >
-                <n-icon size="16"><component :is="nav.icon" /></n-icon>
+                <component :is="nav.icon" style="font-size: 16px" />
                 <span>{{ nav.label }}</span>
             </div>
         </div>
@@ -44,8 +44,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { NButton, NIcon } from 'naive-ui'
-import { AddOutline, TrashOutline, ChatbubbleEllipsesOutline, GridOutline, SettingsOutline, CloudUploadOutline, WalletOutline, TrophyOutline, TrendingUpOutline, BarChartOutline, BuildOutline } from '@vicons/ionicons5'
+import { PlusOutlined, DeleteOutlined, MessageOutlined, AppstoreOutlined, SettingOutlined, CloudUploadOutlined, WalletOutlined, TrophyOutlined, RiseOutlined, BarChartOutlined, ToolOutlined } from '@ant-design/icons-vue'
 
 const props = defineProps({
     sessions: { type: Array, default: () => [] },
@@ -59,15 +58,15 @@ const route = useRoute()
 const currentPath = computed(() => route.path)
 
 const navItems = [
-    { path: '/chat', label: '智能对话', icon: ChatbubbleEllipsesOutline },
-    { path: '/portfolio', label: '我的资产', icon: WalletOutline },
-    { path: '/goal', label: '理财目标', icon: TrophyOutline },
-    { path: '/market', label: '市场行情', icon: TrendingUpOutline },
-    { path: '/analysis', label: '投资分析', icon: BarChartOutline },
-    { path: '/toolbox', label: '工具箱', icon: BuildOutline },
-    { path: '/knowledge', label: '知识库', icon: CloudUploadOutline },
-    { path: '/dashboard', label: '仪表盘', icon: GridOutline },
-    { path: '/settings', label: '设置', icon: SettingsOutline }
+    { path: '/chat', label: '智能对话', icon: MessageOutlined },
+    { path: '/portfolio', label: '我的资产', icon: WalletOutlined },
+    { path: '/goal', label: '理财目标', icon: TrophyOutlined },
+    { path: '/market', label: '市场行情', icon: RiseOutlined },
+    { path: '/analysis', label: '投资分析', icon: BarChartOutlined },
+    { path: '/toolbox', label: '工具箱', icon: ToolOutlined },
+    { path: '/knowledge', label: '知识库', icon: CloudUploadOutlined },
+    { path: '/dashboard', label: '仪表盘', icon: AppstoreOutlined },
+    { path: '/settings', label: '设置', icon: SettingOutlined }
 ]
 
 function goTo(path) {
